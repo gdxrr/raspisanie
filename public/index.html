@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Расписание 3333</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-top">
+      <div class="header-title-row">
+        <span class="header-theme-logo header-theme-logo-guap" id="headerThemeLogo" aria-hidden="true"><img src="guap-icon.svg" alt="ГУАП" width="28" height="28"></span>
+        <div class="group-title" id="groupTitle" onclick="handleTitleTap()">3333</div>
+        <div class="week-badge">
+          <button type="button" class="week-dot-btn" id="weekDotBtn" onclick="toggleWeekLabel()" title="Неделя" aria-label="Неделя">
+            <span class="week-dot" id="weekDot"></span>
+          </button>
+          <span class="week-label-popover" id="weekLabelPopover">Нечётная неделя</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="custom-label custom-label-fan" id="fanLabel"></span>
+        <button type="button" class="like-btn" id="likeBtn" onclick="sendLike()" title="Лайк" aria-label="Лайк">❤️</button>
+        <span class="role-badge" id="roleBadge"></span>
+        <button type="button" class="actions-btn" onclick="openActionsModal()" title="Действия" aria-label="Действия">⋯</button>
+        <a href="#" class="header-guap-btn" onclick="event.preventDefault();openGuapLk();" title="Личный кабинет ГУАП" aria-label="ЛК ГУАП">
+          <img src="guap-icon.svg" alt="" class="header-guap-icon" width="24" height="24">
+        </a>
+        <button type="button" class="view-toggle-btn" id="calendarViewBtn" onclick="toggleCalendarView()" title="Календарь">📅</button>
+      </div>
+    </div>
+    <div class="tap-dots" id="tapDots" style="display:none">
+      <div class="tap-dot" id="td1"></div><div class="tap-dot" id="td2"></div>
+      <div class="tap-dot" id="td3"></div><div class="tap-dot" id="td4"></div>
+      <div class="tap-dot" id="td5"></div>
+    </div>
+  </div>
+
+  <div class="schedule-filter" id="scheduleFilterStrip">
+    <button type="button" class="schedule-filter-btn active" data-filter="all" onclick="setScheduleFilter('all')">Все</button>
+    <button type="button" class="schedule-filter-btn" data-filter="today" onclick="setScheduleFilter('today')">Сегодня</button>
+    <button type="button" class="schedule-filter-btn" data-filter="tomorrow" onclick="setScheduleFilter('tomorrow')">Завтра</button>
+    <button type="button" class="schedule-filter-btn" data-filter="deadlines" onclick="setScheduleFilter('deadlines')">Дедлайны</button>
+  </div>
+
+  <div class="schedule-container" id="scheduleContainer">  </div>
+  <div class="calendar-view" id="calendarView" style="display:none;">
+    <div class="calendar-toolbar">
+      <button type="button" class="calendar-nav" id="calendarPrev" onclick="calendarPrevMonth()">‹</button>
+      <div class="calendar-month-title" id="calendarMonthTitle"></div>
+      <button type="button" class="calendar-nav" id="calendarNext" onclick="calendarNextMonth()">›</button>
+    </div>
+    <div class="calendar-grid-wrap">
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+    <button type="button" class="btn-secondary calendar-back-btn" onclick="toggleCalendarView()">К списку расписания</button>
+  </div>
+
+  <div class="bottom-bar" id="bottomBar">
+    <button class="btn-secondary" onclick="toggleEditMode()" id="editToggleBtn">✏️ Редактировать</button>
+    <button class="btn-secondary" onclick="openBroadcastModal()" id="broadcastBtn">📢 Рассылка</button>
+    <button class="btn-primary" onclick="openAddModal()">+ Добавить пару</button>
+  </div>
+
+  <div class="auth-popup" id="authPopup">
+    <div class="auth-box">
+      <div class="auth-icon">🔐</div>
+      <div class="auth-title">Администратор</div>
+      <div class="auth-sub">Введите пароль для доступа к редактированию</div>
+      <div class="auth-input-wrap">
+        <input class="auth-input" id="authInput" type="password" placeholder="Пароль" autocomplete="off" onkeydown="if(event.key==='Enter')tryAuth()">
+        <button class="auth-eye" onclick="toggleAuthEye()" id="authEye">👁</button>
+      </div>
+      <div class="auth-error" id="authError"></div>
+      <div class="auth-actions">
+        <button class="btn-secondary" onclick="closeAuthPopup()">Отмена</button>
+        <button class="btn-primary" onclick="tryAuth()">Войти</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modalTitle">Добавить пару</div>
+
+      <div class="form-group">
+        <label class="form-label">Предмет</label>
+        <input class="form-input" id="fSubject" placeholder="Название предмета">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Тип</label>
+          <select class="form-select" id="fType">
+            <option value="lab">Лабораторная</option>
+            <option value="lec">Лекция</option>
+            <option value="prac">Практическая</option>
+            <option value="kurs">Курсовая</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">День</label>
+          <select class="form-select" id="fDay">
+            <option>Понедельник</option>
+            <option>Вторник</option>
+            <option>Среда</option>
+            <option>Четверг</option>
+            <option>Пятница</option>
+            <option>Суббота</option>
+            <option>Воскресенье</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Пара</label>
+          <select class="form-select" id="fPair" onchange="updatePairTime()">
+            <option value="1">1 — 9:30–11:00</option>
+            <option value="2">2 — 11:10–12:40</option>
+            <option value="3">3 — 13:00–14:30</option>
+            <option value="4">4 — 15:10–16:40</option>
+            <option value="5">5 — 17:00–18:30</option>
+            <option value="6">6 — 18:40–20:10</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Время</label>
+          <div class="form-input" id="fTimeDisplay" style="color:var(--text2);font-size:14px;display:flex;align-items:center;">9:30 — 11:00</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Аудитория</label>
+          <input class="form-input" id="fRoom" placeholder="52-44 (Б. Морская 67)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Неделя</label>
+          <select class="form-select" id="fWeek">
+            <option value="both">Обе</option>
+            <option value="odd">Нечётная ▲</option>
+            <option value="even">Чётная ▼</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Преподаватель</label>
+        <input class="form-input" id="fTeacher" placeholder="Фамилия И.О., должность">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn-primary" onclick="saveClass()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="broadcastOverlay">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Рассылка подписчикам</div>
+      <div class="form-group">
+        <label class="form-label">Текст сообщения</label>
+        <textarea class="form-input" id="broadcastText" rows="4" placeholder="Сообщение получит только тот, кто подписан на рассылку."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeBroadcastModal()">Отмена</button>
+        <button class="btn-primary" onclick="sendBroadcast()">Отправить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="actionsOverlay">
+    <div class="modal actions-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Действия</h2>
+      </div>
+      <div class="modal-card actions-modal-body">
+        <div class="action-row" data-action-id="broadcast">
+          <span class="action-label" id="actionsBroadcastLabel">Рассылка группы</span>
+          <button type="button" class="btn-action" id="actionsBroadcastBtn" onclick="toggleBroadcastSubscriptionFromActions()">Подписаться</button>
+        </div>
+        <button type="button" class="action-full-btn" data-action-id="starosta" onclick="openStarostaFromActions()">✉️ Написать старосте</button>
+        <button type="button" class="action-full-btn action-starosta-only" id="actionWriteToParticipant" onclick="openWriteToParticipantFromActions()" style="display:none;">👤 Написать участнику</button>
+        <button type="button" class="action-full-btn action-starosta-only" id="actionBroadcastBtn" onclick="openBroadcastFromActions()" style="display:none;">📢 Рассылка</button>
+        <button type="button" class="action-full-btn" data-action-id="reminders" onclick="openRemindersFromActions()">🔔 Напоминания о парах</button>
+        <button type="button" class="action-full-btn" data-action-id="deadlines" onclick="openDeadlinesFromActions()">📋 Дедлайны</button>
+        <button type="button" class="action-full-btn" data-action-id="progress" onclick="openProgressFromActions()">📊 Личный прогресс</button>
+        <button type="button" class="action-full-btn" data-action-id="polls" onclick="openPollsFromActions()">🗳️ Голосования</button>
+        <button type="button" class="action-full-btn" data-action-id="hiddenPairs" onclick="openHiddenPairsFromActions()">👁️ Скрытые пары</button>
+        <button type="button" class="action-full-btn" data-action-id="settings" onclick="openSettingsFromActions()">⚙️ Настройки</button>
+        <button type="button" class="action-full-btn" data-action-id="likes" onclick="openLikesFromActions()">❤️ Посмотреть количество лайков</button>
+        <button type="button" class="action-full-btn" data-action-id="minigames" onclick="openMinigamesFromActions()">🎮 Мини-игры</button>
+        <button type="button" class="action-full-btn" data-action-id="feedback" onclick="openFeedbackFromActions()">📩 Жалобы и предложения</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeActionsModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="settingsOverlay">
+    <div class="modal settings-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Настройки</h2>
+      </div>
+      <div class="settings-body">
+        <div class="modal-card">
+          <div class="form-group">
+            <label class="form-label">Тема</label>
+            <select class="form-select" id="settingsTheme">
+              <option value="dark">Тёмная</option>
+              <option value="light">Светлая</option>
+              <option value="auto">Как в системе</option>
+              <option value="guap">ГУАП</option>
+              <option value="vesna">Весна</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ВУЦ</label>
+            <select class="form-select" id="settingsVuc">
+              <option value="1">Есть ВУЦ</option>
+              <option value="0">Нет ВУЦ</option>
+            </select>
+            <p class="settings-hint">Если нет ВУЦ, в четверг отображается «Пар нет» и в календаре четверг без точки.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ваш день рождения</label>
+            <div class="form-row">
+              <select class="form-select" id="settingsBirthdayDay">
+                <option value="">День</option>
+              </select>
+              <select class="form-select" id="settingsBirthdayMonth">
+                <option value="">Месяц</option>
+                <option value="1">Январь</option>
+                <option value="2">Февраль</option>
+                <option value="3">Март</option>
+                <option value="4">Апрель</option>
+                <option value="5">Май</option>
+                <option value="6">Июнь</option>
+                <option value="7">Июль</option>
+                <option value="8">Август</option>
+                <option value="9">Сентябрь</option>
+                <option value="10">Октябрь</option>
+                <option value="11">Ноябрь</option>
+                <option value="12">Декабрь</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Показывать дни рождения</label>
+            <select class="form-select" id="settingsShowBirthdays">
+              <option value="1">Показывать</option>
+              <option value="0">Скрывать</option>
+            </select>
+            <p class="settings-hint">В календаре и в расписании будут отмечены дни рождения участников группы.</p>
+          </div>
+        </div>
+        <div class="modal-card">
+          <div class="form-group">
+            <label class="form-label">Скрыть пункты в меню «Действия»</label>
+            <div class="settings-hidden-actions" id="settingsHiddenActions"></div>
+            <p class="settings-hint">Отмеченные пункты не будут отображаться в меню ⋯.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeSettingsModal()">Отмена</button>
+        <button class="btn-primary" onclick="saveSettings()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="deadlinesOverlay">
+    <div class="modal deadlines-modal">
+      <div class="modal-handle"></div>
+      <div class="deadlines-modal-header">
+        <h2 class="deadlines-modal-title">Дедлайны</h2>
+        <div class="deadlines-toolbar">
+          <select class="form-select deadlines-sort-select" id="deadlinesSortSelect" onchange="changeDeadlinesSort()" title="Сортировка списка">
+            <option value="subject">По предметам</option>
+            <option value="date">По датам</option>
+          </select>
+          <div class="deadlines-toolbar-toggles">
+            <button type="button" class="deadlines-tab-btn" onclick="toggleDeadlinesVisibilitySection()" id="deadlinesToggleVisibility" aria-pressed="false">Что показывать</button>
+            <button type="button" class="deadlines-tab-btn" onclick="toggleDeadlinesRemindersSection()" id="deadlinesToggleReminders" aria-pressed="false">Напоминания</button>
+          </div>
+        </div>
+      </div>
+      <div class="deadlines-visibility-body" id="deadlinesVisibilityBody" style="display:none;">
+        <p class="deadlines-section-desc">Выберите предметы, которые показывать в календаре и расписании.</p>
+        <div class="deadlines-subject-toggles" id="deadlinesSubjectToggles"></div>
+        <button type="button" class="btn-primary btn-small deadlines-save-btn" onclick="saveDeadlinesVisibility()">Сохранить</button>
+      </div>
+      <div class="deadlines-reminders-body" id="deadlinesRemindersBody" style="display:none;">
+        <p class="deadlines-section-desc">По каким предметам напоминать в Telegram и за сколько времени до дедлайна.</p>
+        <div class="deadlines-reminders-options" id="deadlinesRemindersOptions"></div>
+        <button type="button" class="btn-primary btn-small deadlines-save-btn" onclick="saveDeadlineReminders()">Сохранить напоминания</button>
+      </div>
+      <div class="deadlines-list-wrap">
+        <div class="deadlines-list" id="deadlinesList"></div>
+      </div>
+      <p class="deadlines-legend">🔒 строгий · без 🔒 нестрогий</p>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeDeadlinesModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="progressOverlay">
+    <div class="modal progress-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">📊 Личный прогресс</h2>
+        <p class="modal-section-desc">Отмечайте сданные работы. Учитываются только дедлайны из раздела «Дедлайны».</p>
+      </div>
+      <div class="progress-summary" id="progressSummary"></div>
+      <div class="modal-card">
+        <div class="progress-by-subject" id="progressBySubject"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeProgressModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="pollsOverlay">
+    <div class="modal polls-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">🗳️ Голосования</h2>
+      </div>
+      <div class="modal-card">
+        <button type="button" class="btn-primary polls-create-btn action-starosta-only" id="pollsCreateBtn" onclick="openCreatePollModal()" style="display:none;">+ Создать голосование</button>
+        <div class="polls-list" id="pollsList"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closePollsModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="createPollOverlay">
+    <div class="modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Новое голосование</h2>
+      </div>
+      <div class="modal-card">
+        <div class="form-group">
+          <label class="form-label">Вопрос</label>
+          <input type="text" class="form-input" id="createPollQuestion" placeholder="Например: Во сколько созвон?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Варианты ответа (каждый с новой строки)</label>
+          <textarea class="form-input" id="createPollOptions" rows="4" placeholder="18:00\n19:00\n20:00"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeCreatePollModal()">Отмена</button>
+        <button class="btn-primary" onclick="submitCreatePoll()">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="starostaOverlay">
+    <div class="modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Написать старосте</h2>
+      </div>
+      <div class="modal-card">
+        <div class="form-group">
+          <label class="form-label">Сообщение</label>
+          <textarea class="form-input" id="starostaText" rows="4" placeholder="Что передать старосте?"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeStarostaModal()">Отмена</button>
+        <button class="btn-primary" onclick="sendStarostaMessage()">Отправить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-overlay modal-overlay-slide" id="broadcastOfferOverlay">
+    <div class="modal broadcast-offer-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Рассылка от старосты</h2>
+        <p class="modal-section-desc">Подписаться на рассылку? Вы будете получать важные сообщения от старосты группы.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeBroadcastOfferModal()">Позже</button>
+        <button class="btn-primary" onclick="acceptBroadcastOffer()">Подписаться</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="remindersOverlay">
+    <div class="modal reminders-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Напоминания о парах</h2>
+        <p class="modal-section-desc">Отметьте пары, о которых напомнить. Укажите за сколько минут, дней или точное время в день пары.</p>
+      </div>
+      <div class="modal-card">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">За минут до пары</label>
+            <select class="form-select" id="reminderMinutesSelect">
+              <option value="0">Не напоминать</option>
+              <option value="5">5 минут</option>
+              <option value="10">10 минут</option>
+              <option value="15" selected>15 минут</option>
+              <option value="30">30 минут</option>
+              <option value="60">1 час</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">За дней до пары</label>
+            <select class="form-select" id="reminderDaysSelect">
+              <option value="0">Не напоминать</option>
+              <option value="1">1 день</option>
+              <option value="2">2 дня</option>
+              <option value="3">3 дня</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Или напомнить в (время в день пары)</label>
+          <input type="time" class="form-input" id="reminderAtInput" style="max-width:120px;">
+        </div>
+      </div>
+      <div class="modal-card">
+        <div class="reminders-list" id="remindersList"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeRemindersModal()">Отмена</button>
+        <button class="btn-primary" onclick="saveReminders()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="writeToParticipantOverlay">
+    <div class="modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Написать участнику</h2>
+      </div>
+      <div class="modal-card">
+        <div class="form-group">
+          <label class="form-label">Участник</label>
+          <select class="form-select" id="participantSelect">
+            <option value="">Загрузка...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Сообщение</label>
+          <textarea class="form-input" id="participantMessageText" rows="4" placeholder="Текст сообщения"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeWriteToParticipantModal()">Отмена</button>
+        <button class="btn-primary" onclick="sendToParticipant()">Отправить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="likesOverlay">
+    <div class="modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Количество лайков</h2>
+      </div>
+      <div class="modal-card">
+        <div class="likes-count-display" id="likesCountDisplay">—</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeLikesModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="hiddenPairsOverlay">
+    <div class="modal hidden-pairs-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Скрытые пары</h2>
+        <p class="modal-section-desc">Для каждой пары выберите: показывать, скрыть полностью или показывать бледно.</p>
+      </div>
+      <div class="modal-card">
+        <div class="hidden-pairs-list" id="hiddenPairsList"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeHiddenPairsModal()">Отмена</button>
+        <button class="btn-primary" onclick="saveHiddenPairs()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="betsOverlay">
+    <div class="modal bets-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Ставки на пары</h2>
+        <p class="modal-section-desc">Сколько человек из 28 придёт на пару? Укажите число (0–28) и сохраните.</p>
+      </div>
+      <div class="modal-card">
+        <div class="bets-list" id="betsList"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeBetsModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="casinoOverlay">
+    <div class="modal casino-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">🎰 Казино</h2>
+      </div>
+      <div class="modal-card">
+        <div class="slots-container">
+          <div class="slots-row">
+            <div class="slot-reel" id="slotReel1"><div class="slot-reel-strip" id="slotStrip1"></div></div>
+            <div class="slot-reel" id="slotReel2"><div class="slot-reel-strip" id="slotStrip2"></div></div>
+            <div class="slot-reel" id="slotReel3"><div class="slot-reel-strip" id="slotStrip3"></div></div>
+          </div>
+          <button type="button" class="casino-spin-btn" id="casinoSpinBtn" onclick="spinSlots()">Крутить</button>
+          <div class="casino-result" id="casinoResult"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeCasinoModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="minigamesOverlay">
+    <div class="modal minigames-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">🎮 Мини-игры</h2>
+      </div>
+      <div class="modal-card">
+        <button type="button" class="action-full-btn" onclick="openGame2048FromMinigames()">🔢 2048</button>
+        <button type="button" class="action-full-btn" onclick="openQuizFromMinigames()">📝 Мини-викторина</button>
+        <button type="button" class="action-full-btn" onclick="openCasinoFromMinigames()">🎰 Казино</button>
+        <button type="button" class="action-full-btn" onclick="openBetsFromMinigames()">🎲 Ставки на пары</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeMinigamesModal()">Назад</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="quizOverlay">
+    <div class="modal quiz-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="quiz-header">
+        <span class="quiz-progress" id="quizProgress">Вопрос 1 из 5</span>
+        <span class="quiz-score" id="quizScore">Очки: 0</span>
+        <button type="button" class="btn-secondary btn-small" onclick="closeQuizModal()">Закрыть</button>
+      </div>
+      <div class="quiz-body" id="quizBody">
+        <p class="quiz-question" id="quizQuestion"></p>
+        <div class="quiz-options" id="quizOptions"></div>
+      </div>
+      <div class="quiz-result" id="quizResult" style="display:none;">
+        <p class="quiz-result-title" id="quizResultTitle"></p>
+        <p class="quiz-result-score" id="quizResultScore"></p>
+        <p class="quiz-result-best" id="quizResultBest"></p>
+        <button type="button" class="btn-primary" onclick="quizStart()">Ещё раз</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeQuizModal()">Назад</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="game2048Overlay">
+    <div class="modal game2048-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="game2048-header">
+        <div class="game2048-scores">
+          <span class="game2048-score">Очки: <strong id="game2048Score">0</strong></span>
+          <span class="game2048-best">Рекорд: <strong id="game2048Best">0</strong></span>
+        </div>
+        <div class="game2048-buttons">
+          <button type="button" class="btn-secondary btn-small" onclick="game2048NewGame()">Новая игра</button>
+          <button type="button" class="btn-secondary btn-small" onclick="closeGame2048Modal()">Закрыть</button>
+        </div>
+      </div>
+      <div class="game2048-wrap">
+        <div class="game2048-grid" id="game2048Grid"></div>
+      </div>
+      <p class="game2048-hint" id="game2048Hint">Свайп или стрелки для хода</p>
+      <p class="game2048-over" id="game2048Over" style="display:none;">Игра окончена</p>
+      <div class="game2048-leaderboard-wrap">
+        <button type="button" class="btn-secondary btn-small game2048-leaderboard-btn" onclick="game2048ToggleLeaderboard()">🏆 Таблица лидеров</button>
+        <div class="game2048-leaderboard-list" id="game2048LeaderboardList" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="blockBlastOverlay">
+    <div class="modal blockblast-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="blockblast-header">
+        <span class="blockblast-score">Очки: <strong id="blockBlastScore">0</strong></span>
+        <button type="button" class="btn-secondary btn-small" onclick="closeBlockBlastModal()">Закрыть</button>
+      </div>
+      <div class="blockblast-game-wrap">
+        <div class="blockblast-grid" id="blockBlastGrid"></div>
+      </div>
+      <div class="blockblast-pieces" id="blockBlastPieces"></div>
+      <div class="blockblast-status" id="blockBlastStatus"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="blockBlastRestartBtn" onclick="blockBlastRestart()" style="display:none;">Заново</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="calendarDayModalOverlay">
+    <div class="modal calendar-day-modal">
+      <div class="modal-handle"></div>
+      <div class="calendar-day-modal-header">
+        <span class="calendar-day-modal-day" id="calendarDayModalDay">Понедельник</span>
+        <span class="calendar-day-modal-date" id="calendarDayModalDate">9 март</span>
+      </div>
+      <div class="calendar-day-modal-list" id="calendarDayModalList"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeCalendarDayModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="subjectCardOverlay">
+    <div class="modal subject-card-modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="subjectCardTitle">Предмет</div>
+      <div class="subject-card-meta" id="subjectCardMeta"></div>
+      <div class="subject-card-image-wrap">
+        <img id="subjectCardImage" src="" alt="" class="subject-card-image">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeSubjectCard()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="feedbackOverlay">
+    <div class="modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Жалобы и предложения</h2>
+        <p class="modal-section-desc">Сообщение будет отправлено в Отладку с пометкой «Жалобы и предложения».</p>
+      </div>
+      <div class="modal-card">
+        <div class="form-group">
+          <label class="form-label">Сообщение</label>
+          <textarea class="form-input" id="feedbackText" rows="4" placeholder="Опишите проблему или идею..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeFeedbackModal()">Отмена</button>
+        <button class="btn-primary" onclick="sendFeedback()">Отправить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
