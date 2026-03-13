@@ -55,6 +55,12 @@ let myBirthday = null;
 let birthdaysList = [];
 let settingsShowBirthdays = true;
 let hiddenActionIds = new Set();
+let groupNameSetting = "3333";
+
+// ====================== АДМИН-РЕЖИМ ======================
+// Один параметр, который чаще всего нужно менять:
+// пароль для входа в режим администратора (через 5 тапов по названию группы)
+const ADMIN_PASSWORD = "3333suai";
 
 const ACTION_MENU_ITEMS = [
   { id: "broadcast", label: "Рассылка группы" },
@@ -71,7 +77,7 @@ const ACTION_MENU_ITEMS = [
 ];
 const GUAP_SSO_URL = "https://sso.guap.ru/realms/master/protocol/openid-connect/auth?state=1a30769364889a2601992596d5162efe&scope=profile%20email&response_type=code&approval_prompt=auto&redirect_uri=https%3A%2F%2Fpro.guap.ru%2Foauth%2Fcallback&client_id=prosuai";
 const OIS_SUBJECT = "Открытые информационные системы";
-const DEADLINES_LIST = [
+const DEADLINES_DEFAULT = [
   { id: "ois-lr1", subject: OIS_SUBJECT, task: "ЛР1", type: "soft", date: "2026-03-21", workType: "Лабораторная работа" },
   { id: "ois-lr2", subject: OIS_SUBJECT, task: "ЛР2", type: "soft", date: "2026-03-28", workType: "Лабораторная работа" },
   { id: "ois-lr3", subject: OIS_SUBJECT, task: "ЛР3", type: "soft", date: "2026-04-18", workType: "Лабораторная работа" },
@@ -91,9 +97,40 @@ const DEADLINES_LIST = [
   { id: "pa-lr3", subject: "Программно-аппаратные средства защиты информации", task: "Построение системы разграничения доступа оконечного узла", type: "soft", date: "2026-05-24", workType: "Лабораторная работа" },
   { id: "pa-lr4", subject: "Программно-аппаратные средства защиты информации", task: "Работа с программными системами криптографической защиты информации", type: "soft", date: "2026-05-24", workType: "Лабораторная работа" }
 ];
+let deadlinesList = DEADLINES_DEFAULT.slice();
 let deadlinesVisibleBySubject = {};
 let deadlinesSort = "subject";
 let calendarMonth = new Date();
+
+function normalizeDeadline(d) {
+  if (!d || typeof d !== "object") return null;
+  const id = typeof d.id === "string" && d.id.trim() ? d.id.trim() : null;
+  const subject = (d.subject || "").toString();
+  const task = (d.task || "").toString();
+  const date = (d.date || "").toString().slice(0, 10);
+  if (!subject || !task || !date) return null;
+  const type = d.type === "strict" ? "strict" : "soft";
+  const workType = (d.workType || "").toString();
+  return { id: id || subject + "-" + date, subject, task, date, type, workType };
+}
+
+function loadDeadlinesFromStorage() {
+  try {
+    const raw = localStorage.getItem("schedule_deadlines_list");
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      const norm = arr.map(normalizeDeadline).filter(Boolean);
+      if (norm.length) deadlinesList = norm;
+    }
+  } catch (e) {}
+}
+
+function saveDeadlinesToStorage() {
+  try {
+    localStorage.setItem("schedule_deadlines_list", JSON.stringify(deadlinesList));
+  } catch (e) {}
+}
 
 function isDeadlineVisible(d) {
   return deadlinesVisibleBySubject[d.subject] !== false;
@@ -106,7 +143,7 @@ function getDeadlinesOnDate(year, month1Based, dayOfMonth) {
     String(month1Based).padStart(2, "0") +
     "-" +
     String(dayOfMonth).padStart(2, "0");
-  return DEADLINES_LIST.filter((d) => d.date === dateStr && isDeadlineVisible(d));
+  return deadlinesList.filter((d) => d.date === dateStr && isDeadlineVisible(d));
 }
 
 function formatDeadlineDate(dateStr) {
@@ -353,7 +390,7 @@ function renderSchedule() {
 
   if (scheduleFilter === "deadlines") {
     const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
-    const list = DEADLINES_LIST.filter((d) => d.date >= todayStr && isDeadlineVisible(d)).sort((a, b) => a.date.localeCompare(b.date));
+    const list = deadlinesList.filter((d) => d.date >= todayStr && isDeadlineVisible(d)).sort((a, b) => a.date.localeCompare(b.date));
     let html = '<div class="schedule-filter-deadlines-intro">Ближайшие дедлайны</div>';
     if (!list.length) {
       html += '<div class="no-classes"><div class="emoji">✅</div><div class="title">Нет предстоящих дедлайнов</div></div>';
@@ -802,7 +839,6 @@ function closeSubjectCard() {
   document.getElementById("subjectCardOverlay").classList.remove("open");
 }
 
-const ADMIN_PASSWORD = "";
 let isAdmin = false;
 let tapCount = 0;
 let tapTimer = null;
@@ -881,6 +917,8 @@ function tryAuth() {
     document.getElementById("adminBadge").classList.add("visible");
     document.getElementById("bottomBar").classList.add("admin-visible");
     document.body.classList.add("admin-bar-visible");
+    const btn = document.getElementById("deadlinesAdminEditBtn");
+    if (btn) btn.style.display = "";
     showToast("🔓 Режим администратора");
   } else {
     input.classList.add("error");
@@ -896,6 +934,8 @@ function logoutAdmin() {
   document.getElementById("adminBadge").classList.remove("visible");
   document.getElementById("bottomBar").classList.remove("admin-visible");
   document.body.classList.remove("admin-bar-visible");
+   const btn = document.getElementById("deadlinesAdminEditBtn");
+   if (btn) btn.style.display = "none";
   document.getElementById("editToggleBtn").textContent = "✏️ Редактировать";
   document.getElementById("scheduleContainer").classList.remove("edit-mode");
   showToast("🔒 Вышли из режима администратора");
@@ -1153,13 +1193,15 @@ function updateBroadcastSubUI() {
 function loadSettings() {
   try {
     const t = localStorage.getItem("schedule_theme");
-    if (t === "light" || t === "dark" || t === "auto" || t === "guap" || t === "vesna") settingsTheme = t;
+    if (t === "light" || t === "dark" || t === "auto" || t === "guap" || t === "vesna" || t === "gost") settingsTheme = t;
     const v = localStorage.getItem("schedule_vuc");
     if (v === "0" || v === "1") settingsVuc = v === "1";
     const sb = localStorage.getItem("schedule_show_birthdays");
     if (sb === "0" || sb === "1") settingsShowBirthdays = sb === "1";
     const ha = JSON.parse(localStorage.getItem("schedule_hidden_actions") || "[]");
     hiddenActionIds = new Set(Array.isArray(ha) ? ha : []);
+    const gn = localStorage.getItem("schedule_group_name");
+    if (gn && typeof gn === "string") groupNameSetting = gn;
   } catch (e) {}
   try {
     const dv = JSON.parse(localStorage.getItem("schedule_deadlines_visible") || "{}");
@@ -1211,6 +1253,17 @@ function setupThemeAutoListener() {
 
 function openSettingsFromActions() {
   closeActionsModal();
+  const groupTitle = document.getElementById("groupTitle");
+  if (groupTitle) groupTitle.textContent = groupNameSetting;
+  const groupNameInput = document.getElementById("settingsGroupName");
+  const groupNameGroup = document.getElementById("settingsGroupNameGroup");
+  if (groupNameInput) {
+    groupNameInput.value = groupNameSetting;
+    groupNameInput.disabled = !isAdmin;
+  }
+  if (groupNameGroup) {
+    groupNameGroup.style.display = isAdmin ? "" : "none";
+  }
   document.getElementById("settingsTheme").value = settingsTheme;
   document.getElementById("settingsVuc").value = settingsVuc ? "1" : "0";
   document.getElementById("settingsShowBirthdays").value = settingsShowBirthdays ? "1" : "0";
@@ -1252,8 +1305,16 @@ function saveSettings() {
   const themeEl = document.getElementById("settingsTheme");
   const vucEl = document.getElementById("settingsVuc");
   const showEl = document.getElementById("settingsShowBirthdays");
+  const groupNameEl = document.getElementById("settingsGroupName");
   const dayEl = document.getElementById("settingsBirthdayDay");
   const monthEl = document.getElementById("settingsBirthdayMonth");
+  if (groupNameEl && isAdmin) {
+    const val = groupNameEl.value.trim() || "3333";
+    groupNameSetting = val;
+    try { localStorage.setItem("schedule_group_name", groupNameSetting); } catch (e) {}
+    const titleEl = document.getElementById("groupTitle");
+    if (titleEl) titleEl.textContent = groupNameSetting;
+  }
   if (themeEl) {
     settingsTheme = themeEl.value;
     try { localStorage.setItem("schedule_theme", settingsTheme); } catch (e) {}
@@ -1401,7 +1462,7 @@ function openDeadlinesModal() {
   let html = "";
   if (deadlinesSort === "date") {
     const byDate = {};
-    DEADLINES_LIST.forEach((d) => {
+    deadlinesList.forEach((d) => {
       if (!byDate[d.date]) byDate[d.date] = [];
       byDate[d.date].push(d);
     });
@@ -1415,7 +1476,7 @@ function openDeadlinesModal() {
       });
   } else {
     const grouped = {};
-    DEADLINES_LIST.forEach((d) => {
+    deadlinesList.forEach((d) => {
       if (!grouped[d.subject]) grouped[d.subject] = [];
       grouped[d.subject].push(d);
     });
@@ -1431,7 +1492,7 @@ function openDeadlinesModal() {
   listEl.innerHTML = html;
   const subjEl = document.getElementById("deadlinesSubjectToggles");
   if (subjEl) {
-    const subjects = [...new Set(DEADLINES_LIST.map((d) => d.subject))];
+    const subjects = [...new Set(deadlinesList.map((d) => d.subject))];
     subjEl.innerHTML =
       '<span class="deadlines-visibility-label">В календаре и расписании:</span>' +
       subjects
@@ -1463,7 +1524,7 @@ const DEADLINE_REMINDER_OPTIONS = [
 function buildDeadlinesRemindersGrid() {
   const container = document.getElementById("deadlinesRemindersOptions");
   if (!container) return;
-  const subjects = [...new Set(DEADLINES_LIST.map((d) => d.subject).filter(Boolean))].sort();
+  const subjects = [...new Set(deadlinesList.map((d) => d.subject).filter(Boolean))].sort();
   if (subjects.length === 0) {
     container.innerHTML = "<p class=\"deadlines-reminders-empty\">Нет предметов с дедлайнами</p>";
     return;
@@ -1503,6 +1564,78 @@ async function loadDeadlineRemindersIntoModal() {
   } catch (e) {}
 }
 
+function openDeadlinesEditModal() {
+  if (!isAdmin) {
+    showToast("Только для администратора");
+    return;
+  }
+  const listEl = document.getElementById("deadlinesEditList");
+  if (!listEl) return;
+  let html = "";
+  deadlinesList.forEach((d, idx) => {
+    const idAttr = (d.id || ("dl-" + idx)).replace(/"/g, "&quot;");
+    html +=
+      '<div class="deadlines-edit-row" data-id="' + idAttr + '">' +
+      '<input class="form-input deadlines-edit-subject" placeholder="Предмет" value="' + escapeHtml(d.subject || "").replace(/"/g, "&quot;") + '">' +
+      '<input class="form-input deadlines-edit-task" placeholder="Задание" value="' + escapeHtml(d.task || "").replace(/"/g, "&quot;") + '">' +
+      '<input class="form-input deadlines-edit-date" type="date" value="' + escapeHtml(d.date || "").replace(/"/g, "&quot;") + '">' +
+      '<button type="button" class="deadlines-edit-remove" onclick="removeDeadlineRow(this)">✕</button>' +
+      "</div>";
+  });
+  listEl.innerHTML = html;
+  document.getElementById("deadlinesEditOverlay").classList.add("open");
+}
+
+function closeDeadlinesEditModal() {
+  document.getElementById("deadlinesEditOverlay").classList.remove("open");
+}
+
+function addDeadlineRow() {
+  const listEl = document.getElementById("deadlinesEditList");
+  if (!listEl) return;
+  const div = document.createElement("div");
+  div.className = "deadlines-edit-row";
+  div.innerHTML =
+    '<input class="form-input deadlines-edit-subject" placeholder="Предмет">' +
+    '<input class="form-input deadlines-edit-task" placeholder="Задание">' +
+    '<input class="form-input deadlines-edit-date" type="date">' +
+    '<button type="button" class="deadlines-edit-remove" onclick="removeDeadlineRow(this)">✕</button>';
+  listEl.appendChild(div);
+}
+
+function removeDeadlineRow(btn) {
+  const row = btn.closest(".deadlines-edit-row");
+  if (row && row.parentNode) row.parentNode.removeChild(row);
+}
+
+function saveDeadlinesFromEdit() {
+  const listEl = document.getElementById("deadlinesEditList");
+  if (!listEl) return;
+  const rows = listEl.querySelectorAll(".deadlines-edit-row");
+  const updated = [];
+  rows.forEach((row, idx) => {
+    const subj = row.querySelector(".deadlines-edit-subject").value.trim();
+    const task = row.querySelector(".deadlines-edit-task").value.trim();
+    const date = row.querySelector(".deadlines-edit-date").value.trim();
+    if (!subj || !task || !date) return;
+    const idAttr = row.getAttribute("data-id") || "dl-" + Date.now() + "-" + idx;
+    const d = normalizeDeadline({ id: idAttr, subject: subj, task, date, type: "soft" });
+    if (d) updated.push(d);
+  });
+  if (!updated.length) {
+    showToast("Список дедлайнов пуст");
+  }
+  deadlinesList = updated.length ? updated : deadlinesList;
+  saveDeadlinesToStorage();
+  closeDeadlinesEditModal();
+  if (document.getElementById("deadlinesOverlay").classList.contains("open")) {
+    openDeadlinesModal();
+  }
+  renderSchedule();
+  if (viewMode === "calendar") renderCalendar();
+  showToast("Дедлайны обновлены");
+}
+
 function closeDeadlinesModal() {
   document.getElementById("deadlinesOverlay").classList.remove("open");
 }
@@ -1525,7 +1658,7 @@ function renderProgress() {
   const summaryEl = document.getElementById("progressSummary");
   const bodyEl = document.getElementById("progressBySubject");
   if (!bodyEl) return;
-  const visible = DEADLINES_LIST.filter((d) => isDeadlineVisible(d));
+  const visible = deadlinesList.filter((d) => isDeadlineVisible(d));
   const bySubject = {};
   visible.forEach((d) => {
     if (!bySubject[d.subject]) bySubject[d.subject] = [];
@@ -1766,64 +1899,7 @@ function changeDeadlinesSort() {
   try {
     localStorage.setItem("schedule_deadlines_sort", deadlinesSort);
   } catch (e) {}
-  const listEl = document.getElementById("deadlinesList");
-  if (!listEl) return;
-  const typeIcon = (t) => (t === "strict" ? "🔒 " : "");
-  const typeLabel = (t) => (t === "strict" ? "Строгий" : "Нестрогий");
-  const renderItem = (d, showSubject) => {
-    const vis = isDeadlineVisible(d) ? "" : " (скрыт)";
-    const taskShort = shortDeadlineTask(d.task);
-    return (
-      '<div class="deadlines-item' +
-      (d.type === "strict" ? " deadline-strict" : "") +
-      '">' +
-      '<span class="deadlines-item-type" title="' +
-      typeLabel(d.type) +
-      '">' +
-      typeIcon(d.type) +
-      "</span>" +
-      '<span class="deadlines-item-task">' +
-      escapeHtml(taskShort) +
-      "</span>" +
-      (showSubject ? '<span class="deadlines-item-subject">' + escapeHtml(d.subject) + "</span>" : "") +
-      '<span class="deadlines-item-date">' +
-      formatDeadlineDate(d.date) +
-      "</span>" +
-      (vis ? '<span class="deadlines-item-hidden">' + vis + "</span>" : "") +
-      "</div>"
-    );
-  };
-  let html = "";
-  if (deadlinesSort === "date") {
-    const byDate = {};
-    DEADLINES_LIST.forEach((d) => {
-      if (!byDate[d.date]) byDate[d.date] = [];
-      byDate[d.date].push(d);
-    });
-    Object.keys(byDate)
-      .sort()
-      .forEach((dateStr) => {
-        html += '<div class="deadlines-group"><div class="deadlines-group-title">' + formatDeadlineDate(dateStr) + "</div>";
-        byDate[dateStr].sort((a, b) => (a.subject || "").localeCompare(b.subject || ""));
-        byDate[dateStr].forEach((d) => (html += renderItem(d, true)));
-        html += "</div>";
-      });
-  } else {
-    const grouped = {};
-    DEADLINES_LIST.forEach((d) => {
-      if (!grouped[d.subject]) grouped[d.subject] = [];
-      grouped[d.subject].push(d);
-    });
-    Object.keys(grouped)
-      .sort()
-      .forEach((subject) => {
-        html += '<div class="deadlines-group"><div class="deadlines-group-title">' + escapeHtml(subject) + "</div>";
-        grouped[subject].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-        grouped[subject].forEach((d) => (html += renderItem(d, false)));
-        html += "</div>";
-      });
-  }
-  listEl.innerHTML = html;
+  openDeadlinesModal();
 }
 
 function toggleDeadlinesVisibilitySection() {
@@ -1855,7 +1931,7 @@ function saveDeadlinesVisibility() {
 }
 
 async function saveDeadlineReminders() {
-  const subjects = [...new Set(DEADLINES_LIST.map((d) => d.subject).filter(Boolean))];
+  const subjects = [...new Set(deadlinesList.map((d) => d.subject).filter(Boolean))];
   const bySubject = {};
   subjects.forEach((s) => (bySubject[s] = []));
   document.querySelectorAll(".deadline-reminder-cb:checked").forEach((cb) => {
@@ -3282,4 +3358,15 @@ if (window.Telegram && window.Telegram.WebApp) {
   tg.setBackgroundColor("#1c1c1e");
 }
 
+loadDeadlinesFromStorage();
 loadSchedule();
+
+// применяем сохранённое название группы при инициализации
+try {
+  const gnStored = localStorage.getItem("schedule_group_name");
+  if (gnStored && typeof gnStored === "string") {
+    groupNameSetting = gnStored;
+    const titleEl = document.getElementById("groupTitle");
+    if (titleEl) titleEl.textContent = groupNameSetting;
+  }
+} catch (e) {}

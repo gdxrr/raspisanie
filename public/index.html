@@ -24,6 +24,7 @@
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="custom-label custom-label-fan" id="fanLabel"></span>
         <button type="button" class="like-btn" id="likeBtn" onclick="sendLike()" title="Лайк" aria-label="Лайк">❤️</button>
+        <span class="admin-badge" id="adminBadge">Админ</span>
         <span class="role-badge" id="roleBadge"></span>
         <button type="button" class="actions-btn" onclick="openActionsModal()" title="Действия" aria-label="Действия">⋯</button>
         <a href="#" class="header-guap-btn" onclick="event.preventDefault();openGuapLk();" title="Личный кабинет ГУАП" aria-label="ЛК ГУАП">
@@ -183,6 +184,14 @@
         <h2 class="modal-styled-title">Действия</h2>
       </div>
       <div class="modal-card actions-modal-body">
+        <div class="actions-section-title">Учёба</div>
+        <button type="button" class="action-full-btn" data-action-id="deadlines" onclick="openDeadlinesFromActions()">📋 Дедлайны</button>
+        <button type="button" class="action-full-btn" data-action-id="reminders" onclick="openRemindersFromActions()">🔔 Напоминания о парах</button>
+        <button type="button" class="action-full-btn" data-action-id="progress" onclick="openProgressFromActions()">📊 Личный прогресс</button>
+        <button type="button" class="action-full-btn" data-action-id="polls" onclick="openPollsFromActions()">🗳️ Голосования</button>
+        <button type="button" class="action-full-btn" data-action-id="hiddenPairs" onclick="openHiddenPairsFromActions()">👁️ Скрытые пары</button>
+
+        <div class="actions-section-title">Коммуникация</div>
         <div class="action-row" data-action-id="broadcast">
           <span class="action-label" id="actionsBroadcastLabel">Рассылка группы</span>
           <button type="button" class="btn-action" id="actionsBroadcastBtn" onclick="toggleBroadcastSubscriptionFromActions()">Подписаться</button>
@@ -190,15 +199,12 @@
         <button type="button" class="action-full-btn" data-action-id="starosta" onclick="openStarostaFromActions()">✉️ Написать старосте</button>
         <button type="button" class="action-full-btn action-starosta-only" id="actionWriteToParticipant" onclick="openWriteToParticipantFromActions()" style="display:none;">👤 Написать участнику</button>
         <button type="button" class="action-full-btn action-starosta-only" id="actionBroadcastBtn" onclick="openBroadcastFromActions()" style="display:none;">📢 Рассылка</button>
-        <button type="button" class="action-full-btn" data-action-id="reminders" onclick="openRemindersFromActions()">🔔 Напоминания о парах</button>
-        <button type="button" class="action-full-btn" data-action-id="deadlines" onclick="openDeadlinesFromActions()">📋 Дедлайны</button>
-        <button type="button" class="action-full-btn" data-action-id="progress" onclick="openProgressFromActions()">📊 Личный прогресс</button>
-        <button type="button" class="action-full-btn" data-action-id="polls" onclick="openPollsFromActions()">🗳️ Голосования</button>
-        <button type="button" class="action-full-btn" data-action-id="hiddenPairs" onclick="openHiddenPairsFromActions()">👁️ Скрытые пары</button>
         <button type="button" class="action-full-btn" data-action-id="settings" onclick="openSettingsFromActions()">⚙️ Настройки</button>
         <button type="button" class="action-full-btn" data-action-id="likes" onclick="openLikesFromActions()">❤️ Посмотреть количество лайков</button>
-        <button type="button" class="action-full-btn" data-action-id="minigames" onclick="openMinigamesFromActions()">🎮 Мини-игры</button>
         <button type="button" class="action-full-btn" data-action-id="feedback" onclick="openFeedbackFromActions()">📩 Жалобы и предложения</button>
+
+        <div class="actions-section-title">Развлечения</div>
+        <button type="button" class="action-full-btn" data-action-id="minigames" onclick="openMinigamesFromActions()">🎮 Мини-игры</button>
       </div>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeActionsModal()">Закрыть</button>
@@ -214,6 +220,10 @@
       </div>
       <div class="settings-body">
         <div class="modal-card">
+          <div class="form-group" id="settingsGroupNameGroup">
+            <label class="form-label">Название группы</label>
+            <input class="form-input" id="settingsGroupName" placeholder="Например: 3333">
+          </div>
           <div class="form-group">
             <label class="form-label">Тема</label>
             <select class="form-select" id="settingsTheme">
@@ -222,6 +232,7 @@
               <option value="auto">Как в системе</option>
               <option value="guap">ГУАП</option>
               <option value="vesna">Весна</option>
+              <option value="gost">ГОСТ</option>
             </select>
           </div>
           <div class="form-group">
@@ -293,6 +304,7 @@
             <button type="button" class="deadlines-tab-btn" onclick="toggleDeadlinesVisibilitySection()" id="deadlinesToggleVisibility" aria-pressed="false">Что показывать</button>
             <button type="button" class="deadlines-tab-btn" onclick="toggleDeadlinesRemindersSection()" id="deadlinesToggleReminders" aria-pressed="false">Напоминания</button>
           </div>
+          <button type="button" class="btn-secondary btn-small" id="deadlinesAdminEditBtn" onclick="openDeadlinesEditModal()" style="display:none;">Редактировать список</button>
         </div>
       </div>
       <div class="deadlines-visibility-body" id="deadlinesVisibilityBody" style="display:none;">
@@ -311,6 +323,24 @@
       <p class="deadlines-legend">🔒 строгий · без 🔒 нестрогий</p>
       <div class="modal-actions">
         <button class="btn-primary" onclick="closeDeadlinesModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="deadlinesEditOverlay">
+    <div class="modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="modal-styled-header">
+        <h2 class="modal-styled-title">Редактировать дедлайны</h2>
+        <p class="modal-section-desc">Доступно только в режиме администратора. Изменения сохраняются на этом устройстве.</p>
+      </div>
+      <div class="modal-card">
+        <div class="deadlines-edit-list" id="deadlinesEditList"></div>
+        <button type="button" class="btn-secondary btn-small" onclick="addDeadlineRow()">+ Добавить дедлайн</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeDeadlinesEditModal()">Отмена</button>
+        <button class="btn-primary" onclick="saveDeadlinesFromEdit()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -376,6 +406,7 @@
       <div class="modal-handle"></div>
       <div class="modal-styled-header">
         <h2 class="modal-styled-title">Написать старосте</h2>
+        <p class="modal-section-desc">Сообщение будет отправлено старосте в Telegram.</p>
       </div>
       <div class="modal-card">
         <div class="form-group">
@@ -456,6 +487,7 @@
       <div class="modal-handle"></div>
       <div class="modal-styled-header">
         <h2 class="modal-styled-title">Написать участнику</h2>
+        <p class="modal-section-desc">Сообщение будет отправлено выбранному участнику от имени старосты.</p>
       </div>
       <div class="modal-card">
         <div class="form-group">

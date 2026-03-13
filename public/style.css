@@ -3,6 +3,8 @@
 [data-theme="light"]{--bg:#f2f2f7;--card:#fff;--card2:#e5e5ea;--text:#1c1c1e;--text2:#8e8e93;--sep:#c6c6c8;--border:#c6c6c8;}
 [data-theme="guap"]{--bg:#0d1b2a;--card:#132f4c;--card2:#1e4976;--text:#f1f5f9;--text2:#94a3b8;--blue:#2563eb;--orange:#f59e0b;--purple:#7c3aed;--green:#10b981;--red:#dc2626;--sep:#1e3a5f;--border:#1e4976;}
 [data-theme="vesna"]{--bg:#f5f9f0;--card:#fff;--card2:#e8f5e9;--text:#1b3320;--text2:#5a7a5e;--blue:#1a6b82;--orange:#c9782a;--purple:#8b6b9e;--green:#2e7d32;--red:#b54a4a;--sep:#c5d9c5;--border:#b8d4b8;}
+[data-theme="gost"]{--bg:#ffffff;--card:#ffffff;--card2:#f3f3f3;--text:#000000;--text2:#4a4a4a;--blue:#0a84ff;--orange:#ff9f0a;--purple:#6b4fa6;--green:#2e7d32;--red:#b00020;--sep:#d0d0d0;--border:#b0b0b0;}
+[data-theme="gost"] body{font-family:"Times New Roman",serif;line-height:1.5;}
 [data-theme="vesna"] .header{position:relative;}
 [data-theme="vesna"] .header::after{content:"✿ 🌸 🌷 ✿ 🌸";position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:10px;letter-spacing:6px;opacity:0.45;pointer-events:none;padding-bottom:4px;}
 [data-theme="vesna"] .week-label-row::before{content:"🌸 ";font-size:13px;opacity:0.65;}
@@ -128,6 +130,11 @@ body.admin-bar-visible{padding-bottom:110px;}
 .deadlines-visibility-body .deadlines-subject-toggles .settings-action-check{display:inline-flex;align-items:center;gap:6px;margin:0;padding:6px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--sep);font-size:13px;cursor:pointer;transition:background .15s, border-color .15s;}
 .deadlines-visibility-body .deadlines-subject-toggles .settings-action-check:hover{background:var(--sep);}
 .deadlines-visibility-body .deadlines-subject-toggles .settings-action-check input{width:16px;height:16px;accent-color:var(--green);}
+.deadlines-edit-list{display:flex;flex-direction:column;gap:10px;margin-bottom:10px;max-height:320px;overflow-y:auto;}
+.deadlines-edit-row{display:grid;grid-template-columns:2fr 3fr 1.4fr auto;gap:6px;align-items:center;}
+.deadlines-edit-row .form-input,.deadlines-edit-row .form-select{font-size:13px;padding:8px 10px;}
+.deadlines-edit-type{min-width:0;}
+.deadlines-edit-remove{padding:8px 10px;border-radius:10px;border:none;background:rgba(255,69,58,.12);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;}
 .deadlines-visibility-body .deadlines-subject-toggles .settings-action-check:has(input:checked){background:rgba(48,209,88,.12);border-color:var(--green);}
 .deadlines-visibility-label{font-size:12px;color:var(--text2);display:block;margin-bottom:6px;}
 .deadlines-visibility-body .deadlines-reminders-section{margin-top:10px;margin-bottom:10px;}
@@ -212,6 +219,7 @@ body.admin-bar-visible{padding-bottom:110px;}
 .schedule-filter-deadline-subject{font-size:15px;font-weight:600;color:var(--text);}
 .schedule-filter-deadline-task{font-size:13px;color:var(--text2);}
 .actions-modal .actions-modal-body{display:flex;flex-direction:column;gap:12px;}
+.actions-section-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin:4px 0 2px;}
 .actions-modal .modal-card{padding:12px;}
 .action-full-btn{width:100%;padding:14px 16px;border-radius:12px;border:none;font-size:15px;font-weight:500;cursor:pointer;background:var(--bg);border:1px solid var(--sep);color:var(--text);text-align:left;transition:background .15s,border-color .15s;}
 .action-full-btn:hover{background:var(--card2);}
@@ -299,10 +307,10 @@ body.admin-bar-visible{padding-bottom:110px;}
 .ctm-dot{width:10px;height:10px;border-radius:50%;background:var(--red);flex-shrink:0;}
 .ctm-line{flex:1;height:1px;background:var(--red);}
 .ctm-time{font-size:11px;color:var(--red);font-weight:600;}
-.bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(28,28,30,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--sep);padding:12px 16px 28px;gap:10px;}
+.bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(28,28,30,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--sep);padding:10px 10px 22px;gap:8px;flex-wrap:wrap;}
 .bottom-bar.admin-visible{display:flex;}
-.btn-primary{flex:1;padding:14px;border-radius:14px;border:none;font-size:16px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:opacity .15s;}
-.btn-secondary{flex:1;padding:14px;border-radius:14px;border:none;font-size:16px;font-weight:700;cursor:pointer;background:var(--card);color:var(--text);transition:opacity .15s;}
+.btn-primary{flex:1 1 0;min-width:0;padding:12px;border-radius:14px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:opacity .15s;}
+.btn-secondary{flex:1 1 0;min-width:0;padding:12px;border-radius:14px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:var(--card);color:var(--text);transition:opacity .15s;}
 .btn-primary:active,.btn-secondary:active{opacity:.8;}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;}
 .modal-overlay.open{display:flex;}
@@ -321,9 +329,10 @@ body.admin-bar-visible{padding-bottom:110px;}
 
 /* Единый стиль модалок из меню «Действия» */
 .modal-styled .modal-title{display:none;}
-.modal-styled-header{margin-bottom:16px;}
-.modal-styled-title{font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;color:var(--text);}
-.modal-section-desc{font-size:13px;color:var(--text2);margin:0 0 14px;line-height:1.45;}
+.modal-styled-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.modal-styled-title{font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;color:var(--text);flex:1 1 auto;}
+.modal-styled-header .btn-small{flex:0 0 auto;margin-top:-4px;}
+.modal-section-desc{font-size:13px;color:var(--text2);margin:0 0 14px;line-height:1.45;flex-basis:100%;}
 .modal-card{background:var(--card2);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--sep);}
 .modal-card:last-of-type{margin-bottom:0;}
 .modal-actions{display:flex;gap:10px;margin-top:20px;}
