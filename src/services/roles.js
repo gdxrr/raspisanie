@@ -15,6 +15,12 @@ function isAdminUser(authData) {
   return userId && ADMIN_IDS.includes(Number(userId));
 }
 
+function isConfiguredAdminUser(authData) {
+  const userId = authData && authData.user && authData.user.id;
+  if (!userId || !ADMIN_IDS.length) return false;
+  return ADMIN_IDS.includes(Number(userId));
+}
+
 function isStarostaUser(authData) {
   const userId = authData.user && authData.user.id;
   if (!userId) return false;
@@ -64,6 +70,7 @@ function getCurrentChatId(authData) {
 
 module.exports = {
   isAdminUser,
+  isConfiguredAdminUser,
   isStarostaUser,
   hasStarostaRights,
   getStarostaLikeIds,

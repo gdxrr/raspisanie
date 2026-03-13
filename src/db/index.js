@@ -78,6 +78,18 @@ async function initDb() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS subject_backgrounds (
+        chat_id BIGINT NOT NULL,
+        subject TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        image_data BYTEA NOT NULL,
+        sha256 TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (chat_id, subject)
+      );
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS likes (
         id INT PRIMARY KEY DEFAULT 1,
         count INT NOT NULL DEFAULT 0,
@@ -165,6 +177,163 @@ async function initDb() {
         chat_id BIGINT PRIMARY KEY,
         by_subject JSONB NOT NULL DEFAULT '{}'::jsonb
       );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roulette_wallets (
+        user_id BIGINT PRIMARY KEY,
+        balance INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roulette_wallet_ledger (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        reason TEXT NOT NULL,
+        amount INT NOT NULL,
+        balance_after INT NOT NULL,
+        round_id BIGINT,
+        meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roulette_rounds (
+        id BIGSERIAL PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('open', 'spinning', 'settled')),
+        winning_number INT,
+        winning_color TEXT,
+        opened_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        closes_at TIMESTAMPTZ NOT NULL,
+        spun_at TIMESTAMPTZ,
+        settled_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roulette_bets (
+        round_id BIGINT NOT NULL REFERENCES roulette_rounds(id) ON DELETE CASCADE,
+        user_id BIGINT NOT NULL,
+        bet_type TEXT NOT NULL,
+        bet_value TEXT NOT NULL,
+        amount INT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (round_id, user_id, bet_type, bet_value)
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS roulette_rounds_room_status_idx
+      ON roulette_rounds (room_id, status, opened_at DESC);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS roulette_rounds_room_settled_idx
+      ON roulette_rounds (room_id, settled_at DESC);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS roulette_ledger_user_created_idx
+      ON roulette_wallet_ledger (user_id, created_at DESC);
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS monopoly_rooms (
+        id BIGSERIAL PRIMARY KEY,
+        chat_id BIGINT NOT NULL,
+        room_code TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('lobby', 'active', 'finished')),
+        host_user_id BIGINT NOT NULL,
+        turn_cap INT NOT NULL DEFAULT 120,
+        current_turn INT NOT NULL DEFAULT 0,
+        winner_user_id BIGINT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        started_at TIMESTAMPTZ,
+        finished_at TIMESTAMPTZ,
+        UNIQUE (chat_id, room_code)
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS monopoly_player_tokens (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        mime_type TEXT NOT NULL,
+        image_data BYTEA NOT NULL,
+        sha256 TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS monopoly_room_players (
+        room_id BIGINT NOT NULL REFERENCES monopoly_rooms(id) ON DELETE CASCADE,
+        user_id BIGINT NOT NULL,
+        display_name TEXT NOT NULL DEFAULT '',
+        is_ready BOOLEAN NOT NULL DEFAULT false,
+        is_bankrupt BOOLEAN NOT NULL DEFAULT false,
+        active_token_id BIGINT REFERENCES monopoly_player_tokens(id),
+        joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (room_id, user_id)
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS monopoly_game_states (
+        room_id BIGINT PRIMARY KEY REFERENCES monopoly_rooms(id) ON DELETE CASCADE,
+        state_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+        version INT NOT NULL DEFAULT 1,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS monopoly_game_events (
+        id BIGSERIAL PRIMARY KEY,
+        room_id BIGINT NOT NULL REFERENCES monopoly_rooms(id) ON DELETE CASCADE,
+        version INT NOT NULL,
+        event_type TEXT NOT NULL,
+        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS monopoly_rooms_status_idx
+      ON monopoly_rooms (status, created_at DESC);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS monopoly_events_room_idx
+      ON monopoly_game_events (room_id, id DESC);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS monopoly_tokens_sha_idx
+      ON monopoly_player_tokens (sha256);
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS group_achievements (
+        id BIGSERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        image_mime_type TEXT NOT NULL,
+        image_data BYTEA NOT NULL,
+        created_by BIGINT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS group_achievements_created_idx
+      ON group_achievements (created_at DESC, id DESC);
     `);
 
     await client.query(`

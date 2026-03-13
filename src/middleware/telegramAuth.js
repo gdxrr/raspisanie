@@ -2,17 +2,28 @@ const { verifyTelegramInitData } = require("../lib/telegram");
 const config = require("../config");
 const subscribersRepo = require("../repositories/subscribers");
 
-async function telegramAuth(req, res, next) {
+function createAuthError(status, code) {
+  const err = new Error(code);
+  err.status = status;
+  err.code = code;
+  return err;
+}
+
+async function resolveTelegramAuth(initData, options) {
+  const strict = !!(options && options.strict);
   if (!config.BOT_TOKEN) {
-    return next();
+    if (strict) {
+      throw createAuthError(503, "telegram_auth_unavailable");
+    }
+    return null;
   }
-  const initData = req.headers["x-telegram-init-data"];
+
   const data = verifyTelegramInitData(initData);
   if (!data) {
     console.warn("telegramAuth: invalid or missing initData");
-    return res.status(401).json({ error: "unauthorized" });
+    throw createAuthError(401, "unauthorized");
   }
-  req.telegram = data;
+
   try {
     const chatId =
       (data.chat && data.chat.id) ||
@@ -26,12 +37,38 @@ async function telegramAuth(req, res, next) {
       } : null;
       await subscribersRepo.ensureVisitor(Number(chatId), profile);
     }
-    next();
+    return data;
   } catch (err) {
-    next(err);
+    if (strict || config.BOT_TOKEN) {
+      throw err;
+    }
+    return null;
   }
 }
 
+function buildTelegramAuthMiddleware(options) {
+  return async function telegramAuthMiddleware(req, res, next) {
+    try {
+      const initData = req.headers["x-telegram-init-data"];
+      const data = await resolveTelegramAuth(initData, options);
+      if (data) {
+        req.telegram = data;
+      }
+      next();
+    } catch (err) {
+      if (err && err.status) {
+        return res.status(err.status).json({ error: err.code || "unauthorized" });
+      }
+      next(err);
+    }
+  };
+}
+
+const telegramAuth = buildTelegramAuthMiddleware({ strict: false });
+const strictTelegramAuth = buildTelegramAuthMiddleware({ strict: true });
+
 module.exports = {
+  resolveTelegramAuth,
   telegramAuth,
+  strictTelegramAuth,
 };

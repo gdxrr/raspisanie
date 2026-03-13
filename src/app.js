@@ -14,8 +14,12 @@ app.use("/api", require("./routes/broadcast"));
 app.use("/api", require("./routes/starosta"));
 app.use("/api", require("./routes/reminders"));
 app.use("/api", require("./routes/hiddenPairs"));
+app.use("/api", require("./routes/subjectBackgrounds"));
 app.use("/api", require("./routes/birthdays"));
 app.use("/api", require("./routes/bets"));
+app.use("/api", require("./routes/roulette"));
+app.use("/api", require("./routes/monopoly"));
+app.use("/api", require("./routes/achievements"));
 app.use("/api", require("./routes/deadlineReminders"));
 
 app.use((err, req, res, next) => {

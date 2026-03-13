@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="holiday-effects-layer" id="holidayEffectsLayer" aria-hidden="true">
+    <canvas class="holiday-effects-canvas" id="holidayEffectsCanvas"></canvas>
+    <div class="holiday-effects-particles" id="holidayEffectsParticles"></div>
+    <button type="button" class="holiday-effects-dismiss" id="holidayEffectsDismiss" aria-label="Скрыть праздничную анимацию">×</button>
+  </div>
 
   <div class="header">
     <div class="header-top">
@@ -183,6 +188,10 @@
         <h2 class="modal-styled-title">Действия</h2>
       </div>
       <div class="modal-card actions-modal-body">
+        <button type="button" class="action-full-btn" data-action-id="roulette" onclick="openRouletteFromActions()">🎯 Рулетка</button>
+        <button type="button" class="action-full-btn" data-action-id="d20" onclick="openD20FromActions()">🎲 D20</button>
+        <button type="button" class="action-full-btn" data-action-id="monopoly" onclick="openMonopolyFromActions()">🏠 Монополия</button>
+        <button type="button" class="action-full-btn" data-action-id="achievements" onclick="openAchievementsFromActions()">🏆 Достижения группы</button>
         <div class="action-row" data-action-id="broadcast">
           <span class="action-label" id="actionsBroadcastLabel">Рассылка группы</span>
           <button type="button" class="btn-action" id="actionsBroadcastBtn" onclick="toggleBroadcastSubscriptionFromActions()">Подписаться</button>
@@ -262,6 +271,14 @@
               <option value="0">Скрывать</option>
             </select>
             <p class="settings-hint">В календаре и в расписании будут отмечены дни рождения участников группы.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Праздничные анимации</label>
+            <select class="form-select" id="settingsHolidayAnimations">
+              <option value="1">Включены</option>
+              <option value="0">Выключены</option>
+            </select>
+            <p class="settings-hint">Фоновые праздничные эффекты можно скрыть крестиком или выключить полностью.</p>
           </div>
         </div>
         <div class="modal-card">
@@ -547,6 +564,261 @@
     </div>
   </div>
 
+  <div class="modal-overlay modal-overlay-slide" id="rouletteOverlay">
+    <div class="modal roulette-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="roulette-header">
+        <div>
+          <h2 class="roulette-title">🎯 Рулетка</h2>
+          <p class="roulette-subtitle" id="rouletteStatusText">Загрузка...</p>
+        </div>
+        <button type="button" class="btn-secondary btn-small" onclick="closeRouletteModal()">Закрыть</button>
+      </div>
+      <div class="roulette-body">
+        <div class="roulette-topcards">
+          <div class="roulette-topcard">
+            <span class="roulette-topcard-label">Баланс</span>
+            <strong class="roulette-topcard-value" id="rouletteBalance">—</strong>
+          </div>
+          <div class="roulette-topcard">
+            <span class="roulette-topcard-label">Таймер</span>
+            <strong class="roulette-topcard-value" id="rouletteRoundTimer">—</strong>
+          </div>
+          <div class="roulette-topcard">
+            <span class="roulette-topcard-label">Пул</span>
+            <strong class="roulette-topcard-value" id="roulettePot">—</strong>
+          </div>
+        </div>
+
+        <div class="roulette-empty" id="rouletteUnavailable" style="display:none;"></div>
+
+        <div class="roulette-layout" id="rouletteContent">
+          <div class="modal-card roulette-wheel-card">
+            <div class="roulette-wheel-wrap">
+              <div class="roulette-wheel-pointer"></div>
+              <div class="roulette-wheel-rotor" id="rouletteWheelRotor">
+                <canvas id="rouletteWheelCanvas" width="320" height="320"></canvas>
+              </div>
+              <div class="roulette-wheel-center" id="rouletteWheelCenter">?</div>
+            </div>
+            <div class="roulette-result-badge" id="rouletteLastResult">Ожидание нового раунда</div>
+          </div>
+
+          <div class="modal-card roulette-bet-card">
+            <div class="roulette-card-title">Ставка</div>
+            <div class="roulette-chip-row" id="rouletteChipRow">
+              <button type="button" class="roulette-chip active" data-amount="10" onclick="rouletteSelectChip(10)">10</button>
+              <button type="button" class="roulette-chip" data-amount="25" onclick="rouletteSelectChip(25)">25</button>
+              <button type="button" class="roulette-chip" data-amount="50" onclick="rouletteSelectChip(50)">50</button>
+              <button type="button" class="roulette-chip" data-amount="100" onclick="rouletteSelectChip(100)">100</button>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Размер фишки</label>
+              <input class="form-input" id="rouletteBetAmount" type="number" min="1" step="1" value="25" inputmode="numeric">
+            </div>
+            <div class="roulette-draft" id="rouletteDraftList"></div>
+            <div class="modal-actions roulette-inline-actions">
+              <button class="btn-secondary" onclick="rouletteClearDraft()">Очистить</button>
+              <button class="btn-primary" id="rouletteSubmitBtn" onclick="rouletteSubmitDraft()">Поставить</button>
+            </div>
+          </div>
+
+          <div class="modal-card roulette-board-card">
+            <div class="roulette-card-title">Поле ставок</div>
+            <div class="roulette-board-zero" id="rouletteZeroBoard"></div>
+            <div class="roulette-board-grid" id="rouletteNumberBoard"></div>
+            <div class="roulette-special-grid" id="rouletteSpecialBoard"></div>
+          </div>
+
+          <div class="roulette-grid-columns">
+            <div class="modal-card roulette-list-card">
+              <div class="roulette-card-title">Мои ставки</div>
+              <div class="roulette-list" id="rouletteMyBets"></div>
+            </div>
+            <div class="modal-card roulette-list-card">
+              <div class="roulette-card-title">Последние результаты</div>
+              <div class="roulette-history" id="rouletteHistory"></div>
+            </div>
+          </div>
+
+          <div class="modal-card roulette-admin-card" id="rouletteAdminCard" style="display:none;">
+            <div class="roulette-card-title">Начислить монеты</div>
+            <div class="form-group">
+              <label class="form-label">Игрок</label>
+              <select class="form-select" id="rouletteAdminUser"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Сумма</label>
+                <input class="form-input" id="rouletteAdminAmount" type="number" min="1" step="1" value="100" inputmode="numeric">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Комментарий</label>
+                <input class="form-input" id="rouletteAdminNote" maxlength="200" placeholder="Например: бонус за активность">
+              </div>
+            </div>
+            <div class="modal-actions roulette-inline-actions">
+              <button class="btn-primary" onclick="rouletteSubmitGrant()">Начислить</button>
+            </div>
+            <div class="roulette-admin-log" id="rouletteAdminGrants"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay modal-overlay-slide" id="monopolyOverlay">
+    <div class="modal monopoly-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="monopoly-header">
+        <div>
+          <h2 class="monopoly-title">🏠 Монополия</h2>
+          <p class="monopoly-subtitle" id="monopolyStatusText">Загрузка...</p>
+        </div>
+        <button type="button" class="btn-secondary btn-small" onclick="closeMonopolyModal()">Закрыть</button>
+      </div>
+
+      <div class="monopoly-body">
+        <div class="modal-card monopoly-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Код комнаты</label>
+              <input class="form-input" id="monopolyRoomCodeInput" placeholder="Например AB12CD">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Лимит ходов</label>
+              <input class="form-input" id="monopolyTurnCapInput" type="number" min="60" max="200" value="120">
+            </div>
+          </div>
+          <div class="modal-actions monopoly-inline-actions">
+            <button class="btn-secondary" onclick="monopolyJoinRoom()">Войти</button>
+            <button class="btn-primary" onclick="monopolyCreateRoom()">Создать комнату</button>
+          </div>
+          <div class="monopoly-room-meta" id="monopolyRoomMeta"></div>
+        </div>
+
+        <div class="modal-card monopoly-card">
+          <div class="monopoly-section-title">Игроки</div>
+          <div class="monopoly-players" id="monopolyPlayersList"></div>
+          <div class="form-group">
+            <label class="form-label">Игровая фишка (PNG/JPG, до 1MB)</label>
+            <input class="form-input" id="monopolyTokenInput" type="file" accept="image/png,image/jpeg" onchange="monopolyUploadToken(this)">
+          </div>
+          <div class="modal-actions monopoly-inline-actions">
+            <button class="btn-secondary" id="monopolyReadyBtn" onclick="monopolySetReady()">Готов</button>
+            <button class="btn-primary" id="monopolyStartBtn" onclick="monopolyStartGame()">Старт</button>
+          </div>
+        </div>
+
+        <div class="modal-card monopoly-card">
+          <div class="monopoly-section-title">Поле</div>
+          <div class="monopoly-board-grid" id="monopolyBoardGrid"></div>
+        </div>
+
+        <div class="modal-card monopoly-card">
+          <div class="monopoly-section-title">Действия</div>
+          <div class="monopoly-action-row">
+            <button class="btn-primary" id="monopolyRollBtn" onclick="monopolyAction('roll_dice')">Бросить кубики</button>
+            <button class="btn-secondary" id="monopolyEndTurnBtn" onclick="monopolyAction('end_turn')">Завершить ход</button>
+          </div>
+          <div class="monopoly-action-row">
+            <button class="btn-primary" id="monopolyBuyBtn" onclick="monopolyAction('buy_property')">Купить</button>
+            <button class="btn-secondary" id="monopolyDeclineBtn" onclick="monopolyAction('decline_property')">Аукцион</button>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ставка аукциона</label>
+              <input class="form-input" id="monopolyBidAmount" type="number" min="1" step="1" value="50">
+            </div>
+            <div class="form-group">
+              <label class="form-label"> </label>
+              <button class="btn-secondary monopoly-bid-btn" onclick="monopolyBid()">Поднять ставку</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Кому сделка</label>
+              <select class="form-select" id="monopolyTradeTarget"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Вы даёте $</label>
+              <input class="form-input" id="monopolyTradeOfferCash" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Просите $</label>
+              <input class="form-input" id="monopolyTradeRequestCash" type="number" min="0" step="1" value="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ваши клетки (через запятую)</label>
+              <input class="form-input" id="monopolyTradeOfferProps" placeholder="Например: 1,3,24">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Клетки игрока</label>
+              <input class="form-input" id="monopolyTradeRequestProps" placeholder="Например: 5,8">
+            </div>
+          </div>
+          <div class="modal-actions monopoly-inline-actions">
+            <button class="btn-secondary" onclick="monopolyOfferTrade()">Предложить сделку</button>
+            <button class="btn-secondary" onclick="monopolyRespondTrade(true)">Принять сделку</button>
+            <button class="btn-secondary" onclick="monopolyRespondTrade(false)">Отклонить сделку</button>
+          </div>
+          <div class="modal-actions monopoly-inline-actions">
+            <button class="btn-secondary" onclick="monopolyRequestLeave()">Запросить выход</button>
+            <button class="btn-secondary" onclick="monopolyVoteLeave(true)">Голос за выход</button>
+            <button class="btn-secondary" onclick="monopolyVoteLeave(false)">Голос против</button>
+          </div>
+          <div class="monopoly-history" id="monopolyHistory"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal-overlay modal-overlay-slide" id="achievementsOverlay">
+    <div class="modal achievements-modal modal-styled">
+      <div class="modal-handle"></div>
+      <div class="achievements-header">
+        <div>
+          <h2 class="achievements-title">🏆 Достижения группы</h2>
+          <p class="achievements-subtitle" id="achievementsStatusText">Загрузка данных...</p>
+        </div>
+        <button type="button" class="btn-secondary btn-small" onclick="closeAchievementsModal()">Закрыть</button>
+      </div>
+
+      <div class="achievements-body">
+        <div class="modal-card achievements-topcard">
+          <span class="achievements-topcard-label">Статуэток у группы</span>
+          <strong class="achievements-topcard-value" id="achievementsStatuettesCount">0</strong>
+        </div>
+
+        <div class="modal-card achievements-create-card" id="achievementsCreateCard" style="display:none;">
+          <div class="achievements-card-title">Новое достижение</div>
+          <div class="form-group">
+            <label class="form-label">Название</label>
+            <input class="form-input" id="achievementsTitleInput" maxlength="80" placeholder="Например: 100% посещаемость за неделю">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Описание (опционально)</label>
+            <textarea class="form-input" id="achievementsDescriptionInput" rows="3" maxlength="500" placeholder="Кратко опишите достижение"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Картинка (PNG/JPG, до 1MB)</label>
+            <input class="form-input" id="achievementsImageInput" type="file" accept="image/png,image/jpeg">
+          </div>
+          <div class="modal-actions achievements-inline-actions">
+            <button class="btn-primary" onclick="achievementsSubmitCreate()">Добавить достижение</button>
+          </div>
+        </div>
+
+        <div class="modal-card achievements-list-card">
+          <div class="achievements-card-title">Лента достижений</div>
+          <div class="achievements-list" id="achievementsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="modal-overlay modal-overlay-slide" id="minigamesOverlay">
     <div class="modal minigames-modal modal-styled">
       <div class="modal-handle"></div>
@@ -558,6 +830,8 @@
         <button type="button" class="action-full-btn" onclick="openQuizFromMinigames()">📝 Мини-викторина</button>
         <button type="button" class="action-full-btn" onclick="openCasinoFromMinigames()">🎰 Казино</button>
         <button type="button" class="action-full-btn" onclick="openBetsFromMinigames()">🎲 Ставки на пары</button>
+        <button type="button" class="action-full-btn" onclick="openD20FromMinigames()">🎲 D20</button>
+        <button type="button" class="action-full-btn" onclick="openMonopolyFromMinigames()">🏠 Монополия</button>
       </div>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeMinigamesModal()">Назад</button>
@@ -588,8 +862,107 @@
       </div>
     </div>
   </div>
+<div class="modal-overlay modal-overlay-slide" id="d20Overlay">
+  <div class="modal d20-modal modal-styled">
+    <div class="modal-handle"></div>
+    <div class="d20-header">
+      <div>
+        <h2 class="d20-title">🎲 D20</h2>
+        <p class="d20-subtitle">Baldur's Gate style check</p>
+      </div>
+      <button type="button" class="btn-secondary btn-small" onclick="closeD20Modal()">Закрыть</button>
+    </div>
 
-  <div class="modal-overlay modal-overlay-slide" id="game2048Overlay">
+    <div class="d20-body">
+      <div class="modal-card d20-card">
+        <div class="d20-die-wrap">
+          <div class="d20-die" id="d20Die" onclick="d20Roll()">
+            <span class="d20-die-value" id="d20NaturalValue">?</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">DC</label>
+            <input class="form-input" id="d20DcInput" type="number" min="5" max="30" step="1" value="15" inputmode="numeric" onchange="d20SetDc(this.value)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Modifier total</label>
+            <div class="form-input d20-total-input" id="d20ModifierTotalDisplay">+0</div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-primary" id="d20RollBtn" onclick="d20Roll()">Бросить D20</button>
+        </div>
+      </div>
+
+      <div class="modal-card d20-card">
+        <div class="d20-result-grid">
+          <div class="d20-result-item">
+            <span class="d20-result-label">Natural</span>
+            <strong id="d20ResultNatural">—</strong>
+          </div>
+          <div class="d20-result-item">
+            <span class="d20-result-label">Modifier</span>
+            <strong id="d20ResultModifier">+0</strong>
+          </div>
+          <div class="d20-result-item">
+            <span class="d20-result-label">Total</span>
+            <strong id="d20ResultTotal">—</strong>
+          </div>
+          <div class="d20-result-item">
+            <span class="d20-result-label">Outcome</span>
+            <strong id="d20ResultOutcome">Ожидание</strong>
+          </div>
+        </div>
+        <p class="d20-interpretation" id="d20Interpretation">Бросьте кубик, чтобы получить исход проверки.</p>
+      </div>
+
+      <div class="modal-card d20-card">
+        <div class="d20-section-title">Buffs / Debuffs</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Название</label>
+            <input class="form-input" id="d20ModifierNameInput" maxlength="32" placeholder="Например: Inspiration">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Значение</label>
+            <input class="form-input" id="d20ModifierValueInput" type="number" min="-20" max="20" step="1" value="0" inputmode="numeric">
+          </div>
+        </div>
+        <div class="modal-actions d20-inline-actions">
+          <button class="btn-primary" onclick="d20AddModifier()">Добавить</button>
+        </div>
+        <div class="d20-modifier-list" id="d20ModifierList"></div>
+      </div>
+
+      <div class="modal-card d20-card">
+        <div class="d20-section-title">Dice Skin</div>
+        <div class="d20-palette">
+          <label class="d20-color-control">
+            <span>BG</span>
+            <input type="color" id="d20ColorBg" value="#262633" onchange="d20ChangePalette()">
+          </label>
+          <label class="d20-color-control">
+            <span>Edge</span>
+            <input type="color" id="d20ColorEdge" value="#f5a524" onchange="d20ChangePalette()">
+          </label>
+          <label class="d20-color-control">
+            <span>Text</span>
+            <input type="color" id="d20ColorText" value="#ffffff" onchange="d20ChangePalette()">
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Texture (PNG/JPG)</label>
+          <input class="form-input" type="file" id="d20TextureInput" accept="image/png,image/jpeg" onchange="d20UploadTexture(this)">
+        </div>
+        <div class="modal-actions d20-inline-actions">
+          <button class="btn-secondary" onclick="d20ResetSkin()">Сбросить скин</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay modal-overlay-slide" id="game2048Overlay">
     <div class="modal game2048-modal modal-styled">
       <div class="modal-handle"></div>
       <div class="game2048-header">
@@ -680,6 +1053,12 @@
     </div>
   </div>
 
+  <script src="holidayThemes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
+
+
+
+
+
