@@ -1054,10 +1054,9 @@
     </div>
   </div>
 
-  <!-- main.js (module) runs first and exposes state/utils/modules on window; app.js (defer) runs after and uses them -->
+  <!-- main.js (module) loads schedule, modals, games; all app logic is in js/*.js modules -->
   <script src="holidayThemes.js"></script>
   <script type="module" src="js/main.js"></script>
-  <script defer src="app.js"></script>
 </body>
 </html>
 

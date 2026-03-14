@@ -169,6 +169,94 @@ import {
   openBetsFromActions,
   sendLikeFromActions,
 } from "./actionsModal.js";
+import {
+  openAchievementsModal,
+  closeAchievementsModal,
+  achievementsSubmitCreate,
+  initAchievements,
+} from "./achievements.js";
+import {
+  openRouletteModal,
+  closeRouletteModal,
+  rouletteAddDraftBet,
+  rouletteRemoveDraftBet,
+  rouletteClearDraft,
+  rouletteSelectChip,
+  rouletteSyncChipInput,
+  rouletteSubmitDraft,
+  rouletteSubmitGrant,
+  initRoulette,
+} from "./roulette.js";
+import {
+  openMonopolyModal,
+  closeMonopolyModal,
+  monopolyCreateRoom,
+  monopolyJoinRoom,
+  monopolySetReady,
+  monopolyStartGame,
+  monopolyBid,
+  monopolyOfferTrade,
+  monopolyRespondTrade,
+  monopolyRequestLeave,
+  monopolyVoteLeave,
+  monopolyUploadToken,
+  initMonopoly,
+} from "./monopoly.js";
+import {
+  openD20Modal,
+  closeD20Modal,
+  d20SetDc,
+  d20AddModifier,
+  d20ToggleModifier,
+  d20RemoveModifier,
+  d20ChangePalette,
+  d20UploadTexture,
+  d20ResetSkin,
+  d20Roll,
+  d20LoadState,
+  initD20,
+} from "./d20.js";
+import {
+  openCasinoModal,
+  closeCasinoModal,
+  spinSlots,
+  initCasino,
+} from "./casino.js";
+import {
+  sendLike,
+  openLikesModal,
+  closeLikesModal,
+  initLikes,
+} from "./likes.js";
+import {
+  openBetsModal,
+  closeBetsModal,
+  saveBet,
+  initBets,
+} from "./bets.js";
+import {
+  blockBlastRestart,
+  initBlockBlast,
+} from "./blockBlast.js";
+import {
+  openHiddenPairsFromActions,
+  openHiddenPairsModal,
+  closeHiddenPairsModal,
+  saveHiddenPairs,
+  openRemindersModal,
+  closeRemindersModal,
+  saveReminders,
+  openWriteToParticipantModal,
+  closeWriteToParticipantModal,
+  sendToParticipant,
+  openStarostaModal,
+  closeStarostaModal,
+  sendStarostaMessage,
+  openFeedbackModal,
+  closeFeedbackModal,
+  sendFeedback,
+  initParticipantModals,
+} from "./participantModals.js";
 
 // Expose for HTML onclick and for app.js
 window.escapeHtml = escapeHtml;
@@ -332,12 +420,91 @@ window.openCasinoFromActions = openCasinoFromActions;
 window.openMinigamesFromActions = openMinigamesFromActions;
 window.openMonopolyFromActions = openMonopolyFromActions;
 window.openAchievementsFromActions = openAchievementsFromActions;
+window.openAchievementsModal = openAchievementsModal;
+window.closeAchievementsModal = closeAchievementsModal;
+window.achievementsSubmitCreate = achievementsSubmitCreate;
+window.openRouletteModal = openRouletteModal;
+window.closeRouletteModal = closeRouletteModal;
+window.rouletteAddDraftBet = rouletteAddDraftBet;
+window.rouletteRemoveDraftBet = rouletteRemoveDraftBet;
+window.rouletteClearDraft = rouletteClearDraft;
+window.rouletteSelectChip = rouletteSelectChip;
+window.rouletteSyncChipInput = rouletteSyncChipInput;
+window.rouletteSubmitDraft = rouletteSubmitDraft;
+window.rouletteSubmitGrant = rouletteSubmitGrant;
 window.openD20FromActions = openD20FromActions;
+window.openMonopolyModal = openMonopolyModal;
+window.closeMonopolyModal = closeMonopolyModal;
+window.monopolyCreateRoom = monopolyCreateRoom;
+window.monopolyJoinRoom = monopolyJoinRoom;
+window.monopolySetReady = monopolySetReady;
+window.monopolyStartGame = monopolyStartGame;
+window.monopolyBid = monopolyBid;
+window.monopolyOfferTrade = monopolyOfferTrade;
+window.monopolyRespondTrade = monopolyRespondTrade;
+window.monopolyRequestLeave = monopolyRequestLeave;
+window.monopolyVoteLeave = monopolyVoteLeave;
+window.monopolyUploadToken = monopolyUploadToken;
+window.openD20Modal = openD20Modal;
+window.closeD20Modal = closeD20Modal;
+window.d20SetDc = d20SetDc;
+window.d20AddModifier = d20AddModifier;
+window.d20ToggleModifier = d20ToggleModifier;
+window.d20RemoveModifier = d20RemoveModifier;
+window.d20ChangePalette = d20ChangePalette;
+window.d20UploadTexture = d20UploadTexture;
+window.d20ResetSkin = d20ResetSkin;
+window.d20Roll = d20Roll;
+window.d20LoadState = d20LoadState;
+window.openD20FromActions = openD20FromActions;
+window.sendLike = sendLike;
+window.openLikesModal = openLikesModal;
+window.closeLikesModal = closeLikesModal;
+window.openCasinoModal = openCasinoModal;
+window.closeCasinoModal = closeCasinoModal;
+window.spinSlots = spinSlots;
+window.openBetsModal = openBetsModal;
+window.closeBetsModal = closeBetsModal;
+window.saveBet = saveBet;
+window.blockBlastRestart = blockBlastRestart;
+window.openHiddenPairsFromActions = openHiddenPairsFromActions;
+window.openHiddenPairsModal = openHiddenPairsModal;
+window.closeHiddenPairsModal = closeHiddenPairsModal;
+window.saveHiddenPairs = saveHiddenPairs;
+window.openRemindersModal = openRemindersModal;
+window.closeRemindersModal = closeRemindersModal;
+window.saveReminders = saveReminders;
+window.openWriteToParticipantModal = openWriteToParticipantModal;
+window.closeWriteToParticipantModal = closeWriteToParticipantModal;
+window.sendToParticipant = sendToParticipant;
+window.openStarostaModal = openStarostaModal;
+window.closeStarostaModal = closeStarostaModal;
+window.sendStarostaMessage = sendStarostaMessage;
+window.openFeedbackModal = openFeedbackModal;
+window.closeFeedbackModal = closeFeedbackModal;
+window.sendFeedback = sendFeedback;
 window.openBetsFromActions = openBetsFromActions;
 window.sendLikeFromActions = sendLikeFromActions;
 initBroadcast();
 initEditSchedule();
 initAuth();
+initAchievements();
+initRoulette();
+initMonopoly();
+initD20();
+initCasino();
+initLikes();
+initBets();
+initBlockBlast();
+initParticipantModals();
+const subjectCardOverlay = document.getElementById("subjectCardOverlay");
+if (subjectCardOverlay) subjectCardOverlay.addEventListener("click", function (e) { if (e.target === this) closeSubjectCard(); });
+const calendarDayOverlay = document.getElementById("calendarDayModalOverlay");
+if (calendarDayOverlay) calendarDayOverlay.addEventListener("click", function (e) { if (e.target === this) closeCalendarDayModal(); });
+const deadlinesOverlay = document.getElementById("deadlinesOverlay");
+if (deadlinesOverlay) deadlinesOverlay.addEventListener("click", function (e) { if (e.target === this) closeDeadlinesModal(); });
+const actionsOverlay = document.getElementById("actionsOverlay");
+if (actionsOverlay) actionsOverlay.addEventListener("click", function (e) { if (e.target === this) closeActionsModal(); });
 
 // Telegram WebApp init
 if (window.Telegram && window.Telegram.WebApp) {
