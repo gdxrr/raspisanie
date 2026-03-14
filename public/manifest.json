@@ -9,9 +9,9 @@
   "theme_color": "#1c1c1e",
   "icons": [
     {
-      "src": "/guap-icon.svg",
+      "src": "/assets/images/guap-icon.png",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

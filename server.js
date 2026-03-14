@@ -1,14 +1,14 @@
 require("dotenv").config();
 const http = require("http");
-const db = require("./src/db");
+const db = require("./src/shared/db");
 const app = require("./src/app");
-const { runRemindersTick } = require("./src/services/remindersCron");
-const rouletteService = require("./src/services/rouletteService");
-const RouletteWsHub = require("./src/services/rouletteWsHub");
-const monopolyService = require("./src/services/monopolyService");
-const MonopolyWsHub = require("./src/services/monopolyWsHub");
-const achievementsService = require("./src/services/achievementsService");
-const AchievementsWsHub = require("./src/services/achievementsWsHub");
+const { runRemindersTick } = require("./src/features/reminders/cron");
+const rouletteService = require("./src/features/games/roulette/service");
+const RouletteWsHub = require("./src/features/games/roulette/wsHub");
+const monopolyService = require("./src/features/games/monopoly/service");
+const MonopolyWsHub = require("./src/features/games/monopoly/wsHub");
+const achievementsService = require("./src/features/achievements/service");
+const AchievementsWsHub = require("./src/features/achievements/wsHub");
 
 const PORT = Number(process.env.PORT || 3000);
 

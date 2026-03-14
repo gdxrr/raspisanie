@@ -5,8 +5,6 @@ npm-debug.log
 !.env.example
 .git
 .gitignore
-*.md
-tggggg
 Dockerfile
 docker-compose*.yml
 .dockerignore

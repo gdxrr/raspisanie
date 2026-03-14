@@ -5,22 +5,22 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
-app.use("/api", require("./routes/schedule"));
-app.use("/api", require("./routes/likes"));
-app.use("/api", require("./routes/game2048"));
-app.use("/api", require("./routes/progress"));
-app.use("/api", require("./routes/polls"));
-app.use("/api", require("./routes/broadcast"));
-app.use("/api", require("./routes/starosta"));
-app.use("/api", require("./routes/reminders"));
-app.use("/api", require("./routes/hiddenPairs"));
-app.use("/api", require("./routes/subjectBackgrounds"));
-app.use("/api", require("./routes/birthdays"));
-app.use("/api", require("./routes/bets"));
-app.use("/api", require("./routes/roulette"));
-app.use("/api", require("./routes/monopoly"));
-app.use("/api", require("./routes/achievements"));
-app.use("/api", require("./routes/deadlineReminders"));
+app.use("/api", require("./features/schedule/routes"));
+app.use("/api", require("./features/likes/routes"));
+app.use("/api", require("./features/games/game2048/routes"));
+app.use("/api", require("./features/progress/routes"));
+app.use("/api", require("./features/polls/routes"));
+app.use("/api", require("./features/broadcast/routes"));
+app.use("/api", require("./features/starosta/routes"));
+app.use("/api", require("./features/reminders/routes"));
+app.use("/api", require("./features/schedule/hiddenPairs.routes"));
+app.use("/api", require("./features/subject-backgrounds/routes"));
+app.use("/api", require("./features/birthdays/routes"));
+app.use("/api", require("./features/bets/routes"));
+app.use("/api", require("./features/games/roulette/routes"));
+app.use("/api", require("./features/games/monopoly/routes"));
+app.use("/api", require("./features/achievements/routes"));
+app.use("/api", require("./features/deadlines/routes"));
 
 app.use((err, req, res, next) => {
   const status = err.status || 500;

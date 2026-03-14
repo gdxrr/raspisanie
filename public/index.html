@@ -19,7 +19,7 @@
   <div class="header">
     <div class="header-top">
       <div class="header-title-row">
-        <span class="header-theme-logo header-theme-logo-guap" id="headerThemeLogo" aria-hidden="true"><img src="guap-icon.svg" alt="ГУАП" width="28" height="28"></span>
+        <span class="header-theme-logo header-theme-logo-guap" id="headerThemeLogo" aria-hidden="true"><img src="assets/images/guap-icon.png" alt="ГУАП" width="28" height="28"></span>
         <div class="group-title" id="groupTitle" onclick="handleTitleTap()">3333</div>
         <div class="week-badge">
           <button type="button" class="week-dot-btn" id="weekDotBtn" onclick="toggleWeekLabel()" title="Неделя" aria-label="Неделя">
@@ -35,7 +35,7 @@
         <span class="admin-badge" id="adminBadge" title="Режим администратора">Админ</span>
         <button type="button" class="actions-btn" onclick="openActionsModal()" title="Действия" aria-label="Действия">⋯</button>
         <a href="#" class="header-guap-btn" onclick="event.preventDefault();openGuapLk();" title="Личный кабинет ГУАП" aria-label="ЛК ГУАП">
-          <img src="guap-icon.svg" alt="" class="header-guap-icon" width="24" height="24">
+          <img src="assets/images/guap-icon.png" alt="" class="header-guap-icon" width="24" height="24">
         </a>
         <button type="button" class="view-toggle-btn" id="calendarViewBtn" onclick="toggleCalendarView()" title="Календарь">📅</button>
       </div>
@@ -1059,9 +1059,9 @@
 
   <div id="offlineBanner" class="offline-banner" style="display:none" aria-live="polite">Данные загружены офлайн</div>
 
-  <!-- main.js (module) loads schedule, modals, games; all app logic is in js/*.js modules -->
+  <!-- main.js (module) loads schedule, modals, games; all app logic is in features/*.js modules -->
   <script src="holidayThemes.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="shared/core/main.js"></script>
 </body>
 </html>
 

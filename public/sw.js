@@ -9,7 +9,7 @@ self.addEventListener("install", (event) => {
         "/",
         "/index.html",
         "/style.css",
-        "/guap-icon.svg",
+        "/assets/images/guap-icon.png",
         "/js/main.js",
         "/js/state.js",
         "/js/constants.js",
