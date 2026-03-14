@@ -1,0 +1,375 @@
+import { escapeHtml, showToast, getApiHeaders } from "./utils.js";
+import * as constants from "./constants.js";
+import { state } from "./state.js";
+import {
+  holidayEffectsInit,
+  holidayEffectsRefresh,
+  renderHolidayPreviewToggles,
+  setHolidayPreviewMode,
+} from "./holidayEffects.js";
+import {
+  getAcademicWeekNum,
+  getWeekType,
+  getPeriodAfterTeaching,
+  getHolidayLabel,
+  getBirthdaysOnDate,
+  isHolidayDate,
+  isPreHolidayDate,
+  isSaturdayEvenWeekend,
+  formatDate,
+} from "./dates.js";
+import {
+  handleTitleTap,
+  openAuthPopup,
+  closeAuthPopup,
+  toggleAuthEye,
+  tryAuth,
+  logoutAdmin,
+  initAuth,
+} from "./auth.js";
+import {
+  openSubjectCard,
+  closeSubjectCard,
+  handleSubjectBackgroundSelected,
+  saveSubjectBackground,
+  resetSubjectBackground,
+} from "./subjectCard.js";
+import {
+  toggleEditMode,
+  deleteClass,
+  updatePairTime,
+  openAddModal,
+  openEditModal,
+  closeModal,
+  saveClass,
+  initEditSchedule,
+} from "./editSchedule.js";
+import {
+  openBroadcastModal,
+  closeBroadcastModal,
+  sendBroadcast,
+  loadBroadcastStatus,
+  updateRoleBadge,
+  closeBroadcastOfferModal,
+  acceptBroadcastOffer,
+  updateBroadcastSubUI,
+  updateStarostaOnlyUI,
+  toggleBroadcastSubscription,
+  toggleBroadcastSubscriptionFromActions,
+  initBroadcast,
+} from "./broadcast.js";
+import {
+  loadSettings,
+  applyTheme,
+  setupThemeAutoListener,
+  openSettingsFromActions,
+  closeSettingsModal,
+  saveSettings,
+} from "./settings.js";
+import { setupMainUi } from "./setupMainUi.js";
+import {
+  isDeadlineVisible,
+  getDeadlinesOnDate,
+  formatDeadlineDate,
+  shortDeadlineTask,
+  openDeadlinesModal,
+  buildDeadlinesRemindersGrid,
+  loadDeadlineRemindersIntoModal,
+  closeDeadlinesModal,
+  changeDeadlinesSort,
+  toggleDeadlinesVisibilitySection,
+  toggleDeadlinesRemindersSection,
+  saveDeadlinesVisibility,
+  saveDeadlineReminders,
+} from "./deadlines.js";
+import {
+  getDaysWithClasses,
+  toggleCalendarView,
+  calendarPrevMonth,
+  calendarNextMonth,
+  renderCalendar,
+  openCalendarDayModal,
+  closeCalendarDayModal,
+} from "./calendar.js";
+import {
+  openProgressModal,
+  renderProgress,
+  toggleProgressItem,
+  closeProgressModal,
+} from "./progress.js";
+import {
+  openPollsModal,
+  loadPolls,
+  renderPolls,
+  votePoll,
+  closePoll,
+  closePollsModal,
+  openCreatePollModal,
+  closeCreatePollModal,
+  submitCreatePoll,
+} from "./polls.js";
+import { loadBirthdays } from "./birthdays.js";
+import {
+  openGame2048FromMinigames,
+  closeGame2048Modal,
+  game2048NewGame,
+  game2048LoadLeaderboard,
+  game2048ToggleLeaderboard,
+  game2048SetupInput,
+} from "./game2048.js";
+import {
+  openQuizFromMinigames,
+  closeQuizModal,
+  quizStart,
+  quizRender,
+  quizAnswer,
+  quizShowResult,
+} from "./quiz.js";
+import {
+  closeMinigamesModal,
+  openBlockBlastFromMinigames,
+  closeBlockBlastModal,
+  openCasinoFromMinigames,
+  openBetsFromMinigames,
+  openMonopolyFromMinigames,
+  openD20FromMinigames,
+} from "./minigames.js";
+import {
+  loadSchedule,
+  loadSubjectBackgrounds,
+  saveData,
+  setViewMode,
+  syncViewToggleButtons,
+  init,
+  getDayClassesForDate,
+  setScheduleFilter,
+  renderSchedule,
+  renderScheduleOverview,
+} from "./scheduleList.js";
+import {
+  openActionsModal,
+  closeActionsModal,
+  openStarostaFromActions,
+  openWriteToParticipantFromActions,
+  openBroadcastFromActions,
+  openRemindersFromActions,
+  openDeadlinesFromActions,
+  openProgressFromActions,
+  openPollsFromActions,
+  openGuapLk,
+  toggleWeekLabel,
+  openGuapFromActions,
+  openFeedbackFromActions,
+  openLikesFromActions,
+  openCasinoFromActions,
+  openMinigamesFromActions,
+  openMonopolyFromActions,
+  openAchievementsFromActions,
+  openD20FromActions,
+  openBetsFromActions,
+  sendLikeFromActions,
+} from "./actionsModal.js";
+
+// Expose for HTML onclick and for app.js
+window.escapeHtml = escapeHtml;
+window.showToast = showToast;
+window.getApiHeaders = getApiHeaders;
+window.state = state;
+window.getSubjectBackground = (subject) => {
+  const key = subject == null ? "" : String(subject).trim();
+  if (!key) return null;
+  return state.subjectBackgroundsBySubject[key] || null;
+};
+// Mirror state onto window so app.js and modules share the same data
+const stateKeys = [
+  "schedule", "hiddenPairIds", "dimmedPairIds", "subjectBackgroundsBySubject",
+  "viewMode", "scheduleFilter", "settingsTheme", "settingsVuc", "myBirthday", "birthdaysList",
+  "settingsShowBirthdays", "settingsHolidayAnimations", "hiddenActionIds",
+  "editMode", "editingId", "nextId", "isAdmin", "tapCount", "tapTimer",
+  "deadlinesVisibleBySubject", "deadlinesSort", "calendarMonth", "subjectCardClassId",
+  "rouletteState", "rouletteSelectedChip", "d20State", "monopolyState", "achievementsState",
+  "isEditing", "broadcastSubscribed", "isStarosta", "userRole", "progressData", "pollsListData",
+  "quizCurrentIndex", "quizScore", "quizOrder", "quizAnswered",
+  "game2048Grid", "game2048Score", "game2048Over", "game2048FromGrid", "game2048Leaderboard",
+  "blockBlastGrid", "blockBlastPieces", "blockBlastScore", "blockBlastSelectedPieceIndex",
+  "blockBlastGameOver", "blockBlastDraggedPieceIndex", "blockBlastTouchPlaced",
+];
+for (const key of stateKeys) {
+  if (!(key in state)) continue;
+  Object.defineProperty(window, key, {
+    get() { return state[key]; },
+    set(v) { state[key] = v; },
+    configurable: true,
+  });
+}
+Object.assign(window, constants);
+window.holidayEffectsInit = holidayEffectsInit;
+window.holidayEffectsRefresh = holidayEffectsRefresh;
+window.renderHolidayPreviewToggles = renderHolidayPreviewToggles;
+window.setHolidayPreviewMode = setHolidayPreviewMode;
+window.getAcademicWeekNum = getAcademicWeekNum;
+window.getWeekType = getWeekType;
+window.getPeriodAfterTeaching = getPeriodAfterTeaching;
+window.getHolidayLabel = getHolidayLabel;
+window.getBirthdaysOnDate = getBirthdaysOnDate;
+window.isHolidayDate = isHolidayDate;
+window.isPreHolidayDate = isPreHolidayDate;
+window.isSaturdayEvenWeekend = isSaturdayEvenWeekend;
+window.formatDate = formatDate;
+window.handleTitleTap = handleTitleTap;
+window.openAuthPopup = openAuthPopup;
+window.closeAuthPopup = closeAuthPopup;
+window.toggleAuthEye = toggleAuthEye;
+window.tryAuth = tryAuth;
+window.logoutAdmin = logoutAdmin;
+window.openSubjectCard = openSubjectCard;
+window.closeSubjectCard = closeSubjectCard;
+window.handleSubjectBackgroundSelected = handleSubjectBackgroundSelected;
+window.saveSubjectBackground = saveSubjectBackground;
+window.resetSubjectBackground = resetSubjectBackground;
+window.toggleEditMode = toggleEditMode;
+window.deleteClass = deleteClass;
+window.updatePairTime = updatePairTime;
+window.openAddModal = openAddModal;
+window.openEditModal = openEditModal;
+window.closeModal = closeModal;
+window.saveClass = saveClass;
+window.openBroadcastModal = openBroadcastModal;
+window.closeBroadcastModal = closeBroadcastModal;
+window.sendBroadcast = sendBroadcast;
+window.loadBroadcastStatus = loadBroadcastStatus;
+window.updateRoleBadge = updateRoleBadge;
+window.closeBroadcastOfferModal = closeBroadcastOfferModal;
+window.acceptBroadcastOffer = acceptBroadcastOffer;
+window.updateBroadcastSubUI = updateBroadcastSubUI;
+window.updateStarostaOnlyUI = updateStarostaOnlyUI;
+window.toggleBroadcastSubscription = toggleBroadcastSubscription;
+window.toggleBroadcastSubscriptionFromActions = toggleBroadcastSubscriptionFromActions;
+window.loadSettings = loadSettings;
+window.applyTheme = applyTheme;
+window.openSettingsFromActions = openSettingsFromActions;
+window.closeSettingsModal = closeSettingsModal;
+window.saveSettings = saveSettings;
+window.setupMainUi = setupMainUi;
+window.isDeadlineVisible = isDeadlineVisible;
+window.getDeadlinesOnDate = getDeadlinesOnDate;
+window.formatDeadlineDate = formatDeadlineDate;
+window.shortDeadlineTask = shortDeadlineTask;
+window.openDeadlinesModal = openDeadlinesModal;
+window.buildDeadlinesRemindersGrid = buildDeadlinesRemindersGrid;
+window.loadDeadlineRemindersIntoModal = loadDeadlineRemindersIntoModal;
+window.closeDeadlinesModal = closeDeadlinesModal;
+window.changeDeadlinesSort = changeDeadlinesSort;
+window.toggleDeadlinesVisibilitySection = toggleDeadlinesVisibilitySection;
+window.toggleDeadlinesRemindersSection = toggleDeadlinesRemindersSection;
+window.saveDeadlinesVisibility = saveDeadlinesVisibility;
+window.saveDeadlineReminders = saveDeadlineReminders;
+window.getDaysWithClasses = getDaysWithClasses;
+window.toggleCalendarView = toggleCalendarView;
+window.calendarPrevMonth = calendarPrevMonth;
+window.calendarNextMonth = calendarNextMonth;
+window.renderCalendar = renderCalendar;
+window.openCalendarDayModal = openCalendarDayModal;
+window.closeCalendarDayModal = closeCalendarDayModal;
+window.openProgressModal = openProgressModal;
+window.renderProgress = renderProgress;
+window.toggleProgressItem = toggleProgressItem;
+window.closeProgressModal = closeProgressModal;
+window.openPollsModal = openPollsModal;
+window.loadPolls = loadPolls;
+window.renderPolls = renderPolls;
+window.votePoll = votePoll;
+window.closePoll = closePoll;
+window.closePollsModal = closePollsModal;
+window.openCreatePollModal = openCreatePollModal;
+window.closeCreatePollModal = closeCreatePollModal;
+window.submitCreatePoll = submitCreatePoll;
+window.loadBirthdays = loadBirthdays;
+window.openGame2048FromMinigames = openGame2048FromMinigames;
+window.closeGame2048Modal = closeGame2048Modal;
+window.game2048NewGame = game2048NewGame;
+window.game2048LoadLeaderboard = game2048LoadLeaderboard;
+window.game2048ToggleLeaderboard = game2048ToggleLeaderboard;
+window.game2048SetupInput = game2048SetupInput;
+window.openQuizFromMinigames = openQuizFromMinigames;
+window.closeQuizModal = closeQuizModal;
+window.quizStart = quizStart;
+window.quizRender = quizRender;
+window.quizAnswer = quizAnswer;
+window.quizShowResult = quizShowResult;
+window.closeMinigamesModal = closeMinigamesModal;
+window.openBlockBlastFromMinigames = openBlockBlastFromMinigames;
+window.closeBlockBlastModal = closeBlockBlastModal;
+window.openCasinoFromMinigames = openCasinoFromMinigames;
+window.openBetsFromMinigames = openBetsFromMinigames;
+window.openMonopolyFromMinigames = openMonopolyFromMinigames;
+window.openD20FromMinigames = openD20FromMinigames;
+window.loadSchedule = loadSchedule;
+window.loadSubjectBackgrounds = loadSubjectBackgrounds;
+window.saveData = saveData;
+window.setViewMode = setViewMode;
+window.syncViewToggleButtons = syncViewToggleButtons;
+window.init = init;
+window.getDayClassesForDate = getDayClassesForDate;
+window.setScheduleFilter = setScheduleFilter;
+window.renderSchedule = renderSchedule;
+window.renderScheduleOverview = renderScheduleOverview;
+window.openActionsModal = openActionsModal;
+window.closeActionsModal = closeActionsModal;
+window.openStarostaFromActions = openStarostaFromActions;
+window.openWriteToParticipantFromActions = openWriteToParticipantFromActions;
+window.openBroadcastFromActions = openBroadcastFromActions;
+window.openRemindersFromActions = openRemindersFromActions;
+window.openDeadlinesFromActions = openDeadlinesFromActions;
+window.openProgressFromActions = openProgressFromActions;
+window.openPollsFromActions = openPollsFromActions;
+window.openGuapLk = openGuapLk;
+window.toggleWeekLabel = toggleWeekLabel;
+window.openGuapFromActions = openGuapFromActions;
+window.openFeedbackFromActions = openFeedbackFromActions;
+window.openLikesFromActions = openLikesFromActions;
+window.openCasinoFromActions = openCasinoFromActions;
+window.openMinigamesFromActions = openMinigamesFromActions;
+window.openMonopolyFromActions = openMonopolyFromActions;
+window.openAchievementsFromActions = openAchievementsFromActions;
+window.openD20FromActions = openD20FromActions;
+window.openBetsFromActions = openBetsFromActions;
+window.sendLikeFromActions = sendLikeFromActions;
+initBroadcast();
+initEditSchedule();
+initAuth();
+
+// Telegram WebApp init
+if (window.Telegram && window.Telegram.WebApp) {
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor("#1c1c1e");
+  tg.setBackgroundColor("#1c1c1e");
+}
+
+// Bootstrap: run after DOM is ready so scheduleContainer exists
+function runBootstrap() {
+  // #region agent log
+  const containerExists = !!document.getElementById("scheduleContainer");
+  if (typeof console !== "undefined" && console.log) console.log("[schedule debug] runBootstrap", { hasSetupMainUi: typeof setupMainUi === "function", hasLoadSchedule: typeof loadSchedule === "function", scheduleContainerExists: containerExists });
+  fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'main.js:runBootstrap',message:'runBootstrap',data:{hasSetupMainUi:typeof setupMainUi==='function',hasLoadSchedule:typeof loadSchedule==='function',scheduleContainerExists:containerExists},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  setupMainUi();
+  loadSchedule().catch(function (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'main.js:loadSchedule.catch',message:'loadSchedule rejected',data:{err:String(err&&err.message||err)},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    console.error("loadSchedule failed", err);
+  });
+}
+function scheduleBootstrap() {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(runBootstrap, 0);
+    });
+  } else {
+    setTimeout(runBootstrap, 0);
+  }
+}
+scheduleBootstrap();
