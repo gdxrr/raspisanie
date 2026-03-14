@@ -2,6 +2,26 @@ import { state } from "./state.js";
 import { DEADLINES_LIST } from "./constants.js";
 import { escapeHtml, showToast, getApiHeaders } from "./utils.js";
 
+/** Returns deadlines list from API (state.deadlines) or fallback to constants */
+export function getDeadlinesList() {
+  return Array.isArray(state.deadlines) && state.deadlines.length > 0
+    ? state.deadlines
+    : DEADLINES_LIST;
+}
+
+export async function loadDeadlines() {
+  try {
+    const res = await fetch("/api/deadlines", { headers: getApiHeaders(false) });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      state.deadlines = data;
+    }
+  } catch (e) {
+    console.warn("Failed to load deadlines from API, using fallback", e);
+  }
+}
+
 export function isDeadlineVisible(d) {
   return state.deadlinesVisibleBySubject[d.subject] !== false;
 }
@@ -13,7 +33,7 @@ export function getDeadlinesOnDate(year, month1Based, dayOfMonth) {
     String(month1Based).padStart(2, "0") +
     "-" +
     String(dayOfMonth).padStart(2, "0");
-  return DEADLINES_LIST.filter((d) => d.date === dateStr && isDeadlineVisible(d));
+  return getDeadlinesList().filter((d) => d.date === dateStr && isDeadlineVisible(d));
 }
 
 export function formatDeadlineDate(dateStr) {
@@ -64,10 +84,11 @@ function renderDeadlinesListHtml(sortByDate) {
       "</div>"
     );
   };
+  const list = getDeadlinesList();
   let html = "";
   if (sortByDate) {
     const byDate = {};
-    DEADLINES_LIST.forEach((d) => {
+    list.forEach((d) => {
       if (!byDate[d.date]) byDate[d.date] = [];
       byDate[d.date].push(d);
     });
@@ -81,7 +102,7 @@ function renderDeadlinesListHtml(sortByDate) {
       });
   } else {
     const grouped = {};
-    DEADLINES_LIST.forEach((d) => {
+    list.forEach((d) => {
       if (!grouped[d.subject]) grouped[d.subject] = [];
       grouped[d.subject].push(d);
     });
@@ -105,7 +126,7 @@ export function openDeadlinesModal() {
   listEl.innerHTML = renderDeadlinesListHtml(state.deadlinesSort === "date");
   const subjEl = document.getElementById("deadlinesSubjectToggles");
   if (subjEl) {
-    const subjects = [...new Set(DEADLINES_LIST.map((d) => d.subject))];
+    const subjects = [...new Set(getDeadlinesList().map((d) => d.subject))];
     subjEl.innerHTML =
       '<span class="deadlines-visibility-label">В календаре и расписании:</span>' +
       subjects
@@ -130,7 +151,7 @@ export function openDeadlinesModal() {
 export function buildDeadlinesRemindersGrid() {
   const container = document.getElementById("deadlinesRemindersOptions");
   if (!container) return;
-  const subjects = [...new Set(DEADLINES_LIST.map((d) => d.subject).filter(Boolean))].sort();
+  const subjects = [...new Set(getDeadlinesList().map((d) => d.subject).filter(Boolean))].sort();
   if (subjects.length === 0) {
     container.innerHTML = "<p class=\"deadlines-reminders-empty\">Нет предметов с дедлайнами</p>";
     return;
@@ -216,7 +237,7 @@ export function saveDeadlinesVisibility() {
 }
 
 export async function saveDeadlineReminders() {
-  const subjects = [...new Set(DEADLINES_LIST.map((d) => d.subject).filter(Boolean))];
+  const subjects = [...new Set(getDeadlinesList().map((d) => d.subject).filter(Boolean))];
   const bySubject = {};
   subjects.forEach((s) => (bySubject[s] = []));
   document.querySelectorAll(".deadline-reminder-cb:checked").forEach((cb) => {

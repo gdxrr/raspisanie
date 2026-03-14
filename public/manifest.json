@@ -1,0 +1,18 @@
+{
+  "name": "Расписание 3333",
+  "short_name": "Расписание",
+  "description": "Расписание группы 3333 ГУАП — пары, дедлайны, напоминания",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1c1e",
+  "theme_color": "#1c1c1e",
+  "icons": [
+    {
+      "src": "/guap-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

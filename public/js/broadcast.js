@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { showToast, getApiHeaders } from "./utils.js";
+import { showToast, apiFetch, getApiHeaders } from "./utils.js";
 
 export function openBroadcastModal() {
   if (!state.isAdmin && !state.isStarosta) return;
@@ -23,20 +23,15 @@ export async function sendBroadcast() {
     return;
   }
   try {
-    const res = await fetch("/api/broadcast", {
+    const res = await apiFetch("/api/broadcast", {
       method: "POST",
-      headers: getApiHeaders(true),
+      json: true,
       body: JSON.stringify({ text }),
     });
-    if (!res.ok) {
-      showToast("Ошибка рассылки");
-    } else {
-      const info = await res.json();
-      showToast("Отправлено: " + info.sent + "/" + info.total);
-    }
+    const info = await res.json();
+    showToast("Отправлено: " + (info.sent ?? 0) + "/" + (info.total ?? 0));
   } catch (e) {
     console.error(e);
-    showToast("Ошибка сети при рассылке");
   }
   closeBroadcastModal();
 }

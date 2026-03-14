@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Расписание 3333</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1c1c1e">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -205,6 +207,7 @@
         <button type="button" class="action-full-btn" data-action-id="progress" onclick="openProgressFromActions()">📊 Личный прогресс</button>
         <button type="button" class="action-full-btn" data-action-id="polls" onclick="openPollsFromActions()">🗳️ Голосования</button>
         <button type="button" class="action-full-btn" data-action-id="hiddenPairs" onclick="openHiddenPairsFromActions()">👁️ Скрытые пары</button>
+        <button type="button" class="action-full-btn" data-action-id="export" onclick="exportScheduleFromActions()">📥 Экспорт в календарь</button>
         <button type="button" class="action-full-btn" data-action-id="settings" onclick="openSettingsFromActions()">⚙️ Настройки</button>
         <button type="button" class="action-full-btn" data-action-id="likes" onclick="openLikesFromActions()">❤️ Посмотреть количество лайков</button>
         <button type="button" class="action-full-btn" data-action-id="minigames" onclick="openMinigamesFromActions()">🎮 Мини-игры</button>
@@ -1053,6 +1056,8 @@
       </div>
     </div>
   </div>
+
+  <div id="offlineBanner" class="offline-banner" style="display:none" aria-live="polite">Данные загружены офлайн</div>
 
   <!-- main.js (module) loads schedule, modals, games; all app logic is in js/*.js modules -->
   <script src="holidayThemes.js"></script>

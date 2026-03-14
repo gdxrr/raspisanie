@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { DEADLINES_LIST } from "./constants.js";
+import { getDeadlinesList } from "./deadlines.js";
 import { escapeHtml, showToast, getApiHeaders } from "./utils.js";
 
 export async function openProgressModal() {
@@ -23,7 +23,7 @@ export function renderProgress() {
   const shortDeadlineTask = window.shortDeadlineTask;
   const formatDeadlineDate = window.formatDeadlineDate;
   if (!isDeadlineVisible || !shortDeadlineTask || !formatDeadlineDate) return;
-  const visible = DEADLINES_LIST.filter((d) => isDeadlineVisible(d));
+  const visible = getDeadlinesList().filter((d) => isDeadlineVisible(d));
   const bySubject = {};
   visible.forEach((d) => {
     if (!bySubject[d.subject]) bySubject[d.subject] = [];

@@ -173,6 +173,30 @@ async function initDb() {
     `);
 
     await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'deadlines' AND column_name = 'type') THEN
+          ALTER TABLE deadlines ADD COLUMN type TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'deadlines' AND column_name = 'work_type') THEN
+          ALTER TABLE deadlines ADD COLUMN work_type TEXT;
+        END IF;
+      END $$;
+    `);
+
+    const { DEFAULT_DEADLINES } = require("../lib/seedDeadlinesData");
+    const countResult = await client.query("SELECT COUNT(*) AS n FROM deadlines");
+    if (Number(countResult.rows[0].n) === 0 && DEFAULT_DEADLINES.length > 0) {
+      for (const d of DEFAULT_DEADLINES) {
+        await client.query(
+          `INSERT INTO deadlines (id, subject, task, date, type, work_type) VALUES ($1, $2, $3, $4::date, $5, $6)
+           ON CONFLICT (id) DO NOTHING`,
+          [d.id, d.subject ?? null, d.task ?? null, d.date, d.type ?? "soft", d.workType ?? null]
+        );
+      }
+    }
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS deadline_reminders (
         chat_id BIGINT PRIMARY KEY,
         by_subject JSONB NOT NULL DEFAULT '{}'::jsonb

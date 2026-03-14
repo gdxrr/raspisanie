@@ -47,6 +47,7 @@ async function resolveTelegramAuth(initData, options) {
 }
 
 function buildTelegramAuthMiddleware(options) {
+  const optional = !!(options && options.optional);
   return async function telegramAuthMiddleware(req, res, next) {
     try {
       const initData = req.headers["x-telegram-init-data"];
@@ -56,6 +57,10 @@ function buildTelegramAuthMiddleware(options) {
       }
       next();
     } catch (err) {
+      if (optional) {
+        req.telegram = null;
+        return next();
+      }
       if (err && err.status) {
         return res.status(err.status).json({ error: err.code || "unauthorized" });
       }
@@ -66,9 +71,12 @@ function buildTelegramAuthMiddleware(options) {
 
 const telegramAuth = buildTelegramAuthMiddleware({ strict: false });
 const strictTelegramAuth = buildTelegramAuthMiddleware({ strict: true });
+/** GET-запросы (например, расписание) могут проходить без Telegram — для localhost/разработки отдаём те же данные из БД */
+const optionalTelegramAuth = buildTelegramAuthMiddleware({ strict: false, optional: true });
 
 module.exports = {
   resolveTelegramAuth,
   telegramAuth,
   strictTelegramAuth,
+  optionalTelegramAuth,
 };

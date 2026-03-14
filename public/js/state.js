@@ -21,6 +21,7 @@ export const state = {
   isAdmin: false,
   tapCount: 0,
   tapTimer: null,
+  deadlines: [],
   deadlinesVisibleBySubject: {},
   deadlinesSort: "subject",
   calendarMonth: new Date(),

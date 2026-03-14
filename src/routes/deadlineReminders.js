@@ -1,5 +1,5 @@
 const express = require("express");
-const { telegramAuth } = require("../middleware/telegramAuth");
+const { optionalTelegramAuth, telegramAuth } = require("../middleware/telegramAuth");
 const config = require("../config");
 const rolesService = require("../services/roles");
 const deadlinesRepo = require("../repositories/deadlines");
@@ -8,6 +8,15 @@ const router = express.Router();
 
 const validDays = (arr) =>
   Array.isArray(arr) ? arr.filter((d) => typeof d === "number" && d >= 1 && config.DEADLINE_REMINDER_OPTIONS.includes(d)) : [];
+
+router.get("/deadlines", optionalTelegramAuth, async (req, res, next) => {
+  try {
+    const list = await deadlinesRepo.getDeadlinesList();
+    res.json(list);
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get("/deadline-reminders", telegramAuth, async (req, res, next) => {
   try {

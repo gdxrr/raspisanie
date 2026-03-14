@@ -1,12 +1,16 @@
 const { pool } = require("../db");
 
 async function getDeadlinesList() {
-  const r = await pool.query("SELECT id, subject, task, date FROM deadlines ORDER BY date");
+  const r = await pool.query(
+    'SELECT id, subject, task, date, type, work_type FROM deadlines ORDER BY date'
+  );
   return r.rows.map((row) => ({
     id: row.id,
     subject: row.subject,
     task: row.task,
     date: row.date ? row.date.toISOString().slice(0, 10) : null,
+    type: row.type || "soft",
+    workType: row.work_type || null,
   }));
 }
 

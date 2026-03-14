@@ -5,9 +5,9 @@ import {
   TYPE_CLASS,
   defaultSchedule,
   pairNum,
-  DEADLINES_LIST,
 } from "./constants.js";
-import { escapeHtml, getApiHeaders } from "./utils.js";
+import { getDeadlinesList, loadDeadlines } from "./deadlines.js";
+import { escapeHtml, getApiHeaders, apiFetch, showToast } from "./utils.js";
 import {
   getWeekType,
   getAcademicWeekNum,
@@ -17,10 +17,6 @@ import {
 } from "./dates.js";
 
 export async function loadSchedule() {
-  // #region agent log
-  if (typeof console !== "undefined" && console.log) console.log("[schedule debug] loadSchedule entered");
-  fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:loadSchedule',message:'loadSchedule entered',data:{},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   let data = null;
   try {
     const res = await fetch("/api/schedule", { headers: getApiHeaders(false) });
@@ -45,11 +41,6 @@ export async function loadSchedule() {
     data = defaultSchedule.slice();
   }
 
-  // #region agent log
-  const scheduleLen = (data && data.length) || 0;
-  if (typeof console !== "undefined" && console.log) console.log("[schedule debug] state.schedule set", { scheduleLength: scheduleLen });
-  fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:loadSchedule',message:'state.schedule set',data:{scheduleLength:scheduleLen},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   state.schedule = data;
   state.nextId =
     (state.schedule && state.schedule.length)
@@ -73,6 +64,7 @@ export async function loadSchedule() {
   }
 
   try {
+    await loadDeadlines();
     await loadSubjectBackgrounds();
     if (typeof window.loadBroadcastStatus === "function") window.loadBroadcastStatus();
     if (typeof window.loadSettings === "function") window.loadSettings();
@@ -107,11 +99,12 @@ export async function loadSubjectBackgrounds() {
 export async function saveData() {
   const schedule = state.schedule || [];
   try {
-    await fetch("/api/schedule", {
+    await apiFetch("/api/schedule", {
       method: "POST",
-      headers: getApiHeaders(true),
+      json: true,
       body: JSON.stringify(schedule),
     });
+    showToast("Сохранено");
   } catch (e) {
     console.error("Failed to save schedule to server", e);
   }
@@ -139,9 +132,6 @@ export function syncViewToggleButtons() {
 }
 
 export function init() {
-  // #region agent log
-  fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:init',message:'init entered',data:{viewMode:state.viewMode},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   try {
     const now = new Date();
     const wType = getWeekType(now);
@@ -163,17 +153,11 @@ export function init() {
       if (overview) overview.style.display = "none";
       if (typeof window.renderCalendar === "function") window.renderCalendar();
     } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:init',message:'branch list, calling renderSchedule',data:{},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       const scheduleCont = document.getElementById("scheduleContainer");
       if (scheduleCont) scheduleCont.style.display = "";
       renderSchedule();
     }
   } catch (e) {
-    // #region agent log
-    fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:init',message:'init threw',data:{err:String(e&&e.message||e)},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     console.error("Schedule init error", e);
   }
 }
@@ -291,11 +275,6 @@ function shortDeadlineTaskSafe(task) {
 export function renderSchedule() {
   const scheduleRef = Array.isArray(state.schedule) ? state.schedule : [];
   const cont = document.getElementById("scheduleContainer");
-  // #region agent log
-  const contNull = !cont;
-  if (typeof console !== "undefined" && console.log) console.log("[schedule debug] renderSchedule", { contNull, scheduleLen: scheduleRef.length });
-  fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:renderSchedule',message:'renderSchedule cont check',data:{contNull:contNull,scheduleLen:scheduleRef.length},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
   if (!cont) return;
   const filterStrip = document.getElementById("scheduleFilterStrip");
   const overview = document.getElementById("scheduleOverview");
@@ -318,7 +297,7 @@ export function renderSchedule() {
 
   if (state.scheduleFilter === "deadlines") {
     const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
-    const list = DEADLINES_LIST.filter((d) => d.date >= todayStr && isDeadlineVisibleSafe(d)).sort((a, b) => a.date.localeCompare(b.date));
+    const list = getDeadlinesList().filter((d) => d.date >= todayStr && isDeadlineVisibleSafe(d)).sort((a, b) => a.date.localeCompare(b.date));
     let html = '<div class="schedule-filter-deadlines-intro">Ближайшие дедлайны</div>';
     if (!list.length) {
       html += '<div class="no-classes"><div class="emoji">✅</div><div class="title">Нет предстоящих дедлайнов</div></div>';
@@ -454,11 +433,6 @@ export function renderSchedule() {
     console.error("renderSchedule error", e);
     html = '<div class="no-classes"><div class="title">Ошибка отображения расписания</div><div class="subtitle">Откройте консоль (F12)</div></div>';
   }
-  // #region agent log
-  const contDisplay = cont ? getComputedStyle(cont).display : "";
-  if (typeof console !== "undefined" && console.log) console.log("[schedule debug] about to set innerHTML", { htmlLen: html.length, contDisplay });
-  fetch('http://127.0.0.1:7625/ingest/f0416d0c-206c-4146-9cb3-e961c4db9051',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d8941a'},body:JSON.stringify({sessionId:'d8941a',location:'scheduleList.js:renderSchedule',message:'about to set innerHTML',data:{htmlLen:html.length,contDisplay:contDisplay},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
-  // #endregion
   cont.innerHTML = html;
   if (state.editMode) cont.classList.add("edit-mode");
   else cont.classList.remove("edit-mode");

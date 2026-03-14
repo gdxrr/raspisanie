@@ -1,5 +1,6 @@
 import { state } from "./state.js";
 import { GUAP_SSO_URL } from "./constants.js";
+import { getApiHeaders } from "./utils.js";
 
 export function openActionsModal() {
   if (typeof window.updateBroadcastSubUI === "function") window.updateBroadcastSubUI();
@@ -115,4 +116,29 @@ export function sendLikeFromActions() {
   closeActionsModal();
   if (typeof window.sendLike === "function") window.sendLike();
   if (typeof window.showToast === "function") window.showToast("Лайк отправлен");
+}
+
+export async function exportScheduleFromActions() {
+  closeActionsModal();
+  const format = "ics";
+  const today = new Date();
+  const from = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+  const toDate = new Date(today);
+  toDate.setDate(toDate.getDate() + 28);
+  const to = toDate.getFullYear() + "-" + String(toDate.getMonth() + 1).padStart(2, "0") + "-" + String(toDate.getDate()).padStart(2, "0");
+  const url = "/api/schedule/export?format=" + format + "&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to);
+  try {
+    const res = await fetch(url, { headers: getApiHeaders(false) });
+    if (!res.ok) throw new Error(res.statusText);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "raspisanie.ics";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof window.showToast === "function") window.showToast("Календарь сохранён");
+  } catch (e) {
+    console.error("Export failed", e);
+    if (typeof window.showToast === "function") window.showToast("Ошибка экспорта");
+  }
 }

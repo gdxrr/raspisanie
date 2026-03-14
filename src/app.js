@@ -23,8 +23,19 @@ app.use("/api", require("./routes/achievements"));
 app.use("/api", require("./routes/deadlineReminders"));
 
 app.use((err, req, res, next) => {
-  console.error("Unhandled error", err);
-  res.status(500).json({ error: "internal_error" });
+  const status = err.status || 500;
+  const code = err.code || "internal_error";
+  if (status >= 500) {
+    console.error("Unhandled error", err);
+  }
+  const body = { error: code };
+  if (err.message && status < 500) {
+    body.message = err.message;
+  }
+  if (err.details && typeof err.details === "object") {
+    body.details = err.details;
+  }
+  res.status(status).json(body);
 });
 
 module.exports = app;
