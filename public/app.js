@@ -400,7 +400,7 @@ let hiddenPairIds = new Set();
 let dimmedPairIds = new Set();
 let subjectBackgroundsBySubject = {};
 let viewMode = "list";
-let scheduleFilter = "all";
+let scheduleFilter = "today";
 let settingsTheme = "dark";
 let settingsVuc = true;
 let myBirthday = null;
@@ -801,6 +801,126 @@ const TYPE_CLASS = {
   kurs: "type-kurs"
 };
 
+function setupMainUi() {
+  const headerTop = document.querySelector(".header-top");
+  if (headerTop) {
+    headerTop.innerHTML =
+      '<div class="header-title-row">' +
+      '<span class="header-theme-logo header-theme-logo-guap" id="headerThemeLogo" aria-hidden="true"><img src="guap-icon.svg" alt="ГУАП" width="28" height="28"></span>' +
+      '<div class="header-title-block">' +
+      '<div class="group-title" id="groupTitle" onclick="handleTitleTap()">3333</div>' +
+      '<div class="header-meta-row">' +
+      '<span class="custom-label custom-label-fan" id="fanLabel"></span>' +
+      '<span class="role-badge" id="roleBadge"></span>' +
+      '<span class="admin-badge" id="adminBadge" title="Режим администратора">Админ</span>' +
+      "</div>" +
+      "</div>" +
+      '<div class="week-badge">' +
+      '<button type="button" class="week-dot-btn" id="weekDotBtn" onclick="toggleWeekLabel()" title="Неделя" aria-label="Неделя">' +
+      '<span class="week-dot" id="weekDot"></span>' +
+      "</button>" +
+      '<span class="week-label-popover" id="weekLabelPopover">Нечётная неделя</span>' +
+      "</div>" +
+      "</div>" +
+      '<div class="header-actions">' +
+      '<div class="view-switch" role="tablist" aria-label="Режим просмотра">' +
+      '<button type="button" class="view-switch-btn" id="listViewBtn" onclick="setViewMode(\'list\')">Список</button>' +
+      '<button type="button" class="view-switch-btn" id="calendarViewBtn" onclick="setViewMode(\'calendar\')">Календарь</button>' +
+      "</div>" +
+      '<button type="button" class="actions-btn actions-btn-more" onclick="openActionsModal()" title="Ещё" aria-label="Ещё">Ещё</button>' +
+      "</div>";
+  }
+
+  const filterStrip = document.getElementById("scheduleFilterStrip");
+  if (filterStrip) {
+    if (!document.getElementById("scheduleOverview")) {
+      const overview = document.createElement("section");
+      overview.className = "schedule-overview";
+      overview.id = "scheduleOverview";
+      filterStrip.parentNode.insertBefore(overview, filterStrip);
+    }
+    filterStrip.innerHTML =
+      '<button type="button" class="schedule-filter-btn" data-filter="today" onclick="setScheduleFilter(\'today\')">Сегодня</button>' +
+      '<button type="button" class="schedule-filter-btn" data-filter="tomorrow" onclick="setScheduleFilter(\'tomorrow\')">Завтра</button>' +
+      '<button type="button" class="schedule-filter-btn" data-filter="all" onclick="setScheduleFilter(\'all\')">Все</button>' +
+      '<button type="button" class="schedule-filter-btn" data-filter="deadlines" onclick="setScheduleFilter(\'deadlines\')">Дедлайны</button>';
+    filterStrip.querySelectorAll(".schedule-filter-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.getAttribute("data-filter") === scheduleFilter);
+    });
+  }
+
+  const actionsHeader = document.querySelector(".actions-modal .modal-styled-header");
+  if (actionsHeader) {
+    actionsHeader.innerHTML =
+      '<h2 class="modal-styled-title">Ещё возможностей</h2>' +
+      '<p class="modal-section-desc">Основной экран сосредоточен на расписании, а дополнительные сценарии сгруппированы здесь.</p>';
+  }
+
+  const actionsBody = document.querySelector(".actions-modal-body");
+  if (actionsBody) {
+    actionsBody.classList.remove("modal-card");
+    actionsBody.innerHTML =
+      '<div class="modal-card action-group">' +
+      '<div class="action-group-title">Учёба</div>' +
+      '<div class="action-group-grid">' +
+      '<button type="button" class="action-full-btn" data-action-id="deadlines" onclick="openDeadlinesFromActions()">📋 Дедлайны</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="reminders" onclick="openRemindersFromActions()">🔔 Напоминания о парах</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="progress" onclick="openProgressFromActions()">📊 Личный прогресс</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="polls" onclick="openPollsFromActions()">🗳️ Голосования</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="hiddenPairs" onclick="openHiddenPairsFromActions()">👁️ Скрытые пары</button>' +
+      "</div>" +
+      "</div>" +
+      '<div class="modal-card action-group">' +
+      '<div class="action-group-title">Коммуникация</div>' +
+      '<div class="action-group-grid">' +
+      '<button type="button" class="action-full-btn" data-action-id="starosta" onclick="openStarostaFromActions()">✉️ Написать старосте</button>' +
+      '<div class="action-row" data-action-id="broadcast">' +
+      '<span class="action-label" id="actionsBroadcastLabel">Рассылка группы</span>' +
+      '<button type="button" class="btn-action" id="actionsBroadcastBtn" onclick="toggleBroadcastSubscriptionFromActions()">Подписаться</button>' +
+      "</div>" +
+      '<button type="button" class="action-full-btn action-starosta-only" id="actionWriteToParticipant" onclick="openWriteToParticipantFromActions()" style="display:none;">👤 Написать участнику</button>' +
+      '<button type="button" class="action-full-btn action-starosta-only" id="actionBroadcastBtn" onclick="openBroadcastFromActions()" style="display:none;">📢 Рассылка</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="feedback" onclick="openFeedbackFromActions()">📩 Жалобы и предложения</button>' +
+      "</div>" +
+      "</div>" +
+      '<div class="modal-card action-group">' +
+      '<div class="action-group-title">Развлечения</div>' +
+      '<div class="action-group-grid">' +
+      '<button type="button" class="action-full-btn" data-action-id="roulette" onclick="openRouletteFromActions()">🎯 Рулетка</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="d20" onclick="openD20FromActions()">🎲 D20</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="monopoly" onclick="openMonopolyFromActions()">🏠 Монополия</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="achievements" onclick="openAchievementsFromActions()">🏆 Достижения группы</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="minigames" onclick="openMinigamesFromActions()">🎮 Мини-игры</button>' +
+      "</div>" +
+      "</div>" +
+      '<div class="modal-card action-group">' +
+      '<div class="action-group-title">Сервисы</div>' +
+      '<div class="action-group-grid">' +
+      '<button type="button" class="action-full-btn" data-action-id="settings" onclick="openSettingsFromActions()">⚙️ Настройки</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="likes" onclick="openLikesFromActions()">❤️ Лайки</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="guap-service" onclick="openGuapFromActions()">🏛 ЛК ГУАП</button>' +
+      '<button type="button" class="action-full-btn" data-action-id="like-service" onclick="sendLikeFromActions()">❤️ Поставить лайк</button>' +
+      "</div>" +
+      "</div>";
+  }
+}
+
+function setViewMode(nextMode) {
+  const desiredMode = nextMode === "calendar" ? "calendar" : "list";
+  if (viewMode === desiredMode) {
+    syncViewToggleButtons();
+    return;
+  }
+  toggleCalendarView(desiredMode);
+}
+
+function syncViewToggleButtons() {
+  const listBtn = document.getElementById("listViewBtn");
+  const calendarBtn = document.getElementById("calendarViewBtn");
+  if (listBtn) listBtn.classList.toggle("active", viewMode === "list");
+  if (calendarBtn) calendarBtn.classList.toggle("active", viewMode === "calendar");
+}
+
 function init() {
   const now = new Date();
   const wType = getWeekType(now);
@@ -815,11 +935,15 @@ function init() {
     weekLabelPopover.textContent = (wType === "odd" ? "Нечётная" : "Чётная") + " неделя";
   }
 
+  syncViewToggleButtons();
+
   if (viewMode === "calendar") {
     const cont = document.getElementById("scheduleContainer");
     const cal = document.getElementById("calendarView");
+    const overview = document.getElementById("scheduleOverview");
     if (cont) cont.style.display = "none";
     if (cal) cal.style.display = "block";
+    if (overview) overview.style.display = "none";
     renderCalendar();
   } else {
     renderSchedule();
@@ -836,18 +960,103 @@ function getDayClassesForDate(dayName, weekType) {
     .sort((a, b) => m(a.start) - m(b.start));
 }
 
+function getEffectiveClassesForDate(date) {
+  const dayIndex = date.getDay();
+  const dayName = dayIndex === 0 ? "Воскресенье" : DAY_NAMES[dayIndex - 1];
+  const classes = getDayClassesForDate(dayName, getWeekType(date)).filter((c) => !hiddenPairIds.has(c.id));
+  if (dayName === "Четверг" && !settingsVuc) return [];
+  return classes;
+}
+
+function classTimeMinutes(item, edge) {
+  const value = item && item[edge];
+  if (!value) return 0;
+  const [h, m] = value.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function renderScheduleOverview() {
+  const overview = document.getElementById("scheduleOverview");
+  if (!overview || viewMode !== "list") return;
+
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const todaysClasses = getEffectiveClassesForDate(today);
+  const tomorrowClasses = getEffectiveClassesForDate(tomorrow);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  let currentClass = null;
+  let nextClass = null;
+
+  todaysClasses.forEach((item) => {
+    const startMinutes = classTimeMinutes(item, "start");
+    const endMinutes = classTimeMinutes(item, "end");
+    if (nowMinutes >= startMinutes && nowMinutes < endMinutes) currentClass = item;
+    if (!nextClass && startMinutes > nowMinutes) nextClass = item;
+  });
+
+  let statusLabel = "\u0421\u0435\u0433\u043e\u0434\u043d\u044f";
+  let statusTitle = "\u041f\u0430\u0440 \u043d\u0435\u0442";
+  let statusMeta = "\u0413\u043b\u0430\u0432\u043d\u043e\u0435 \u0443\u0436\u0435 \u0441\u043f\u043e\u043a\u043e\u0439\u043d\u043e: \u043c\u043e\u0436\u043d\u043e \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0438\u0442\u044c\u0441\u044f \u043d\u0430 \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u044b \u0438\u043b\u0438 \u043e\u0442\u0434\u044b\u0445.";
+  let ctaFilter = tomorrowClasses.length ? "tomorrow" : "all";
+  let ctaText = tomorrowClasses.length ? "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0437\u0430\u0432\u0442\u0440\u0430" : "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043d\u0435\u0434\u0435\u043b\u044e";
+
+  if (currentClass) {
+    statusLabel = "\u0421\u0435\u0439\u0447\u0430\u0441";
+    statusTitle = currentClass.subject;
+    statusMeta = currentClass.start + " - " + currentClass.end + " - " + (currentClass.room || "\u0410\u0443\u0434\u0438\u0442\u043e\u0440\u0438\u044f \u0443\u0442\u043e\u0447\u043d\u044f\u0435\u0442\u0441\u044f");
+    ctaFilter = "today";
+    ctaText = "\u041a \u0441\u0435\u0433\u043e\u0434\u043d\u044f\u0448\u043d\u0438\u043c \u043f\u0430\u0440\u0430\u043c";
+  } else if (nextClass) {
+    statusLabel = "\u0414\u0430\u043b\u044c\u0448\u0435";
+    statusTitle = nextClass.subject;
+    statusMeta = nextClass.start + " - " + (nextClass.room || "\u0410\u0443\u0434\u0438\u0442\u043e\u0440\u0438\u044f \u0443\u0442\u043e\u0447\u043d\u044f\u0435\u0442\u0441\u044f");
+    ctaFilter = "today";
+    ctaText = "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0441\u0435\u0433\u043e\u0434\u043d\u044f";
+  } else if (tomorrowClasses.length) {
+    const firstTomorrow = tomorrowClasses[0];
+    statusLabel = "\u0417\u0430\u0432\u0442\u0440\u0430";
+    statusTitle = firstTomorrow.subject;
+    statusMeta = firstTomorrow.start + " - " + (firstTomorrow.room || "\u0410\u0443\u0434\u0438\u0442\u043e\u0440\u0438\u044f \u0443\u0442\u043e\u0447\u043d\u044f\u0435\u0442\u0441\u044f");
+  }
+
+  const pills = [];
+  if (todaysClasses.length) pills.push('<div class="schedule-overview-pill"><span>\u0421\u0435\u0433\u043e\u0434\u043d\u044f</span><strong>' + String(todaysClasses.length) + "</strong></div>");
+  if (tomorrowClasses.length) pills.push('<div class="schedule-overview-pill"><span>\u0417\u0430\u0432\u0442\u0440\u0430</span><strong>' + String(tomorrowClasses.length) + "</strong></div>");
+  if (!pills.length) pills.push('<div class="schedule-overview-pill"><span>\u0420\u0435\u0436\u0438\u043c</span><strong>\u041f\u0430\u0443\u0437\u0430</strong></div>');
+
+  overview.innerHTML =
+    '<div class="schedule-overview-card">' +
+    '<div class="schedule-overview-main">' +
+    '<span class="schedule-overview-label">' + escapeHtml(statusLabel) + "</span>" +
+    '<h2 class="schedule-overview-title">' + escapeHtml(statusTitle) + "</h2>" +
+    '<p class="schedule-overview-meta">' + escapeHtml(statusMeta) + "</p>" +
+    "</div>" +
+    '<div class="schedule-overview-side">' +
+    pills.join("") +
+    '<button type="button" class="schedule-overview-cta" onclick="setScheduleFilter(\'' + ctaFilter + '\')">' + escapeHtml(ctaText) + "</button>" +
+    "</div>" +
+    "</div>";
+}
+
 function setScheduleFilter(filter) {
   scheduleFilter = filter;
   document.querySelectorAll(".schedule-filter-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.getAttribute("data-filter") === filter);
   });
   renderSchedule();
+  renderScheduleOverview();
 }
 
 function renderSchedule() {
   const cont = document.getElementById("scheduleContainer");
   const filterStrip = document.getElementById("scheduleFilterStrip");
+  const overview = document.getElementById("scheduleOverview");
   if (filterStrip) filterStrip.style.display = viewMode === "list" ? "" : "none";
+  if (overview) overview.style.display = viewMode === "list" ? "" : "none";
+  if (viewMode === "list") renderScheduleOverview();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -987,6 +1196,10 @@ function renderSchedule() {
           }
         }
 
+        const startMinutes = classTimeMinutes(c, "start");
+        const endMinutes = classTimeMinutes(c, "end");
+        const isCurrentClass = isToday && nowMinutes >= startMinutes && nowMinutes < endMinutes;
+        const isUpcomingClass = isToday && !isCurrentClass && startMinutes > nowMinutes && !effectiveClasses.slice(0, i).some((item) => classTimeMinutes(item, "start") > nowMinutes);
         const badge =
           c.week !== "both"
             ? '<span class="week-indicator ' +
@@ -999,6 +1212,8 @@ function renderSchedule() {
           ? ' onclick="openSubjectCard(' + c.id + ')" role="button" tabindex="0"'
           : "";
         let cardClass = "class-card" + (!editMode ? " class-card-clickable" : "");
+        if (isCurrentClass) cardClass += " class-card-current";
+        else if (isUpcomingClass) cardClass += " class-card-next";
         if (dimmedPairIds.has(c.id)) cardClass += " class-card-dimmed";
         if (subjectBg && subjectBg.dataUrl) cardClass += " class-card-has-bg";
         const cardStyle = subjectBg && subjectBg.dataUrl
@@ -1019,16 +1234,18 @@ function renderSchedule() {
           escapeHtml(pairDisplay) +
           '</div><div class="time-end">' +
           escapeHtml(c.end) +
-          '</div></div><div class="divider-v"></div><div class="info-col"><div class="class-type ' +
+          '</div></div><div class="divider-v"></div><div class="info-col">' +
+          (isCurrentClass ? '<span class="class-state-badge">\u0421\u0435\u0439\u0447\u0430\u0441</span>' : isUpcomingClass ? '<span class="class-state-badge upcoming">\u0414\u0430\u043b\u044c\u0448\u0435</span>' : "") +
+          '<div class="class-type ' +
           tc +
           '">' +
           escapeHtml(tl) +
           '</div><div class="class-name">' +
           escapeHtml(c.subject) +
-          '</div><div class="class-tags"><span class="tag">' +
-          escapeHtml(c.room) +
-          '</span><span class="tag">3333</span></div><div class="class-teacher">' +
-          escapeHtml(c.teacher) +
+          '</div><div class="class-meta-row"><span class="class-room">' +
+          escapeHtml(c.room || "Аудитория уточняется") +
+          '</span><span class="class-meta-dot">•</span><span class="class-teacher">' +
+          escapeHtml(c.teacher || "Преподаватель уточняется") +
           "</div></div>" +
           badge +
           '<div class="card-actions"><button class="action-btn btn-edit" onclick="event.stopPropagation();openEditModal(' +
@@ -1058,17 +1275,19 @@ function getDaysWithClasses() {
   return set;
 }
 
-function toggleCalendarView() {
-  viewMode = viewMode === "list" ? "calendar" : "list";
+function toggleCalendarView(nextMode) {
+  if (nextMode === "calendar" || nextMode === "list") viewMode = nextMode;
+  else viewMode = viewMode === "list" ? "calendar" : "list";
   const cont = document.getElementById("scheduleContainer");
   const cal = document.getElementById("calendarView");
   const btn = document.getElementById("calendarViewBtn");
   const filterStrip = document.getElementById("scheduleFilterStrip");
+  const overview = document.getElementById("scheduleOverview");
   if (viewMode === "calendar") {
     if (cont) cont.style.display = "none";
     if (filterStrip) filterStrip.style.display = "none";
+    if (overview) overview.style.display = "none";
     if (cal) cal.style.display = "block";
-    if (btn) btn.setAttribute("title", "К списку");
     const bottomBar = document.getElementById("bottomBar");
     if (bottomBar) bottomBar.classList.remove("admin-visible");
     calendarMonth = new Date();
@@ -1076,14 +1295,15 @@ function toggleCalendarView() {
   } else {
     if (cont) cont.style.display = "";
     if (filterStrip) filterStrip.style.display = "";
+    if (overview) overview.style.display = "";
     if (cal) cal.style.display = "none";
-    if (btn) btn.setAttribute("title", "Календарь");
     if (isAdmin) {
       const bottomBar = document.getElementById("bottomBar");
       if (bottomBar) bottomBar.classList.add("admin-visible");
     }
     renderSchedule();
   }
+  syncViewToggleButtons();
 }
 
 function calendarPrevMonth() {
@@ -1505,7 +1725,7 @@ async function resetSubjectBackground() {
   }
 }
 
-const ADMIN_PASSWORD = "";
+const ADMIN_PASSWORD = "3333suai";
 let isAdmin = false;
 let tapCount = 0;
 let tapTimer = null;
@@ -1581,8 +1801,10 @@ function tryAuth() {
   if (input.value === ADMIN_PASSWORD) {
     isAdmin = true;
     closeAuthPopup();
-    document.getElementById("adminBadge").classList.add("visible");
-    document.getElementById("bottomBar").classList.add("admin-visible");
+    const adminBadge = document.getElementById("adminBadge");
+    if (adminBadge) adminBadge.classList.add("visible");
+    const bottomBar = document.getElementById("bottomBar");
+    if (bottomBar) bottomBar.classList.add("admin-visible");
     document.body.classList.add("admin-bar-visible");
     showToast("🔓 Режим администратора");
   } else {
@@ -1596,8 +1818,10 @@ function tryAuth() {
 function logoutAdmin() {
   isAdmin = false;
   editMode = false;
-  document.getElementById("adminBadge").classList.remove("visible");
-  document.getElementById("bottomBar").classList.remove("admin-visible");
+  const adminBadge = document.getElementById("adminBadge");
+  if (adminBadge) adminBadge.classList.remove("visible");
+  const bottomBar = document.getElementById("bottomBar");
+  if (bottomBar) bottomBar.classList.remove("admin-visible");
   document.body.classList.remove("admin-bar-visible");
   document.getElementById("editToggleBtn").textContent = "✏️ Редактировать";
   document.getElementById("scheduleContainer").classList.remove("edit-mode");
@@ -3074,6 +3298,12 @@ async function sendLike() {
   } catch (e) {
     console.error(e);
   }
+}
+
+function sendLikeFromActions() {
+  closeActionsModal();
+  sendLike();
+  showToast("Лайк отправлен");
 }
 
 async function openLikesModal() {
@@ -6105,4 +6335,5 @@ if (window.Telegram && window.Telegram.WebApp) {
   tg.setBackgroundColor("#1c1c1e");
 }
 
+setupMainUi();
 loadSchedule();

@@ -8,7 +8,7 @@ if(clicks>=5){
 
 const pass=prompt("Пароль");
 
-if(pass==="suai"){
+if(pass==="3333suai"){
 openAdmin();
 }
 
